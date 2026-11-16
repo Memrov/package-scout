@@ -65,7 +65,7 @@ export class PackageSources {
     this.counts[new URL(url).hostname.endsWith('npmjs.org') ? 'npm' : 'deps_dev']++;
     if (sequence) await this.pause(250);
     const response = await this.fetchImpl(url, {
-      method: body ? 'POST' : 'GET', redirect: 'error',
+      method: body ? 'POST' : 'GET', redirect: 'manual',
       headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(30000),
     });

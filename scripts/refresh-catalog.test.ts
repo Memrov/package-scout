@@ -110,6 +110,17 @@ test('429 stops immediately, exposes Retry-After, and never retries automaticall
   assert.equal(calls, 1);
 });
 
+test('uses Cloudflare-compatible manual redirects and rejects upstream redirects', async () => {
+  let calls = 0;
+  const client = new PackageSources({ maxRequests: 2, pause, fetchImpl: async (_url, init) => {
+    calls++;
+    assert.equal(init?.redirect, 'manual');
+    return new Response('', { status: 302, headers: { Location: 'https://other.invalid/' } });
+  } });
+  await assert.rejects(client.latest('alpha'), /HTTP 302/);
+  assert.equal(calls, 1);
+});
+
 test('the request cap includes concurrent requests and does not allow an extra fetch', async () => {
   const mock = fixture();
   const client = new PackageSources({ maxRequests: 2, ...mock, pause });
