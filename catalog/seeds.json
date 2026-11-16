@@ -1,0 +1,11 @@
+{
+  "search_terms": ["csv", "transcription", "resumable upload"],
+  "package_names": ["@transcribe/transcriber", "papaparse", "p-limit", "tus-js-client"],
+  "limits": {
+    "search_results_per_term": 3,
+    "new_packages_per_run": 10,
+    "packages_per_run": 20,
+    "max_packages": 500,
+    "max_requests": 40
+  }
+}

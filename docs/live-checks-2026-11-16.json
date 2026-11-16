@@ -1,0 +1,173 @@
+{
+  "checked_at": "2026-11-16T23:21:56.459Z",
+  "scope": "Live metadata discovery, MCP transport, README and dependency graph retrieval; no functional package tests.",
+  "cases": [
+    {
+      "tool": "search_packages",
+      "arguments": {
+        "keywords": [
+          "csv"
+        ],
+        "runtime": "browser"
+      },
+      "duration_ms": 4403,
+      "packages": [
+        {
+          "name": "papaparse",
+          "version": "5.7.1",
+          "quality_score": 79.2
+        }
+      ],
+      "inspected_package": null,
+      "filtered_counts": {
+        "no_browser_declaration": 9
+      },
+      "meta": {
+        "as_of": "2026-11-16T23:21:47.061Z",
+        "upstream_requests": {
+          "total": 14,
+          "npm": 12,
+          "deps_dev": 2
+        },
+        "cache_hit": false,
+        "cache_ttl_seconds": 300
+      },
+      "warnings": []
+    },
+    {
+      "tool": "search_packages",
+      "arguments": {
+        "keywords": [
+          "transcription"
+        ],
+        "runtime": "browser"
+      },
+      "duration_ms": 4304,
+      "packages": [
+        {
+          "name": "@transcribe/transcriber",
+          "version": "3.0.1",
+          "quality_score": 62.7
+        }
+      ],
+      "inspected_package": null,
+      "filtered_counts": {
+        "below_download_floor": 1,
+        "prerelease": 1,
+        "no_browser_declaration": 6,
+        "keyword_mismatch": 1
+      },
+      "meta": {
+        "as_of": "2026-11-16T23:21:51.366Z",
+        "upstream_requests": {
+          "total": 13,
+          "npm": 11,
+          "deps_dev": 2
+        },
+        "cache_hit": false,
+        "cache_ttl_seconds": 300
+      },
+      "warnings": []
+    },
+    {
+      "tool": "search_packages",
+      "arguments": {
+        "keywords": [
+          "concurrency",
+          "limit"
+        ],
+        "match_all_keywords": true
+      },
+      "duration_ms": 3467,
+      "packages": [
+        {
+          "name": "p-limit",
+          "version": "7.3.3",
+          "quality_score": 86.2
+        },
+        {
+          "name": "await-parallel-limit",
+          "version": "3.0.0",
+          "quality_score": 76.1
+        },
+        {
+          "name": "micro-ftch",
+          "version": "1.2.1",
+          "quality_score": 73.4
+        }
+      ],
+      "inspected_package": null,
+      "filtered_counts": {
+        "keyword_mismatch": 1,
+        "below_download_floor": 2,
+        "unidentified_license": 1
+      },
+      "meta": {
+        "as_of": "2026-11-16T23:21:54.833Z",
+        "upstream_requests": {
+          "total": 12,
+          "npm": 10,
+          "deps_dev": 2
+        },
+        "cache_hit": false,
+        "cache_ttl_seconds": 300
+      },
+      "warnings": []
+    },
+    {
+      "tool": "search_packages",
+      "arguments": {
+        "keywords": [
+          "csv"
+        ],
+        "runtime": "browser"
+      },
+      "duration_ms": 2,
+      "packages": [
+        {
+          "name": "papaparse",
+          "version": "5.7.1",
+          "quality_score": 79.2
+        }
+      ],
+      "inspected_package": null,
+      "filtered_counts": {
+        "no_browser_declaration": 9
+      },
+      "meta": {
+        "as_of": "2026-11-16T23:21:47.061Z",
+        "upstream_requests": {
+          "total": 0,
+          "npm": 0,
+          "deps_dev": 0
+        },
+        "cache_hit": true,
+        "cache_ttl_seconds": 300
+      },
+      "warnings": []
+    },
+    {
+      "tool": "get_package_details",
+      "arguments": {
+        "name": "@transcribe/transcriber",
+        "include_readme": true,
+        "include_dependency_summary": true
+      },
+      "duration_ms": 1620,
+      "packages": [],
+      "inspected_package": "@transcribe/transcriber",
+      "filtered_counts": null,
+      "meta": {
+        "as_of": "2026-11-16T23:21:56.455Z",
+        "upstream_requests": {
+          "total": 5,
+          "npm": 2,
+          "deps_dev": 3
+        },
+        "cache_hit": false,
+        "cache_ttl_seconds": 900
+      },
+      "warnings": []
+    }
+  ]
+}

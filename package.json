@@ -1,0 +1,17 @@
+{
+  "name": "package-scout",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": { "node": ">=24.3.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "validate": "node scripts/validate-artifact.mjs",
+    "check": "tsc --noEmit",
+    "dev": "node scripts/preview.ts",
+    "test:live": "node scripts/smoke-test.ts",
+    "test": "node --test scripts/refresh-catalog.test.ts worker/index.test.ts",
+    "catalog:refresh": "node scripts/refresh-catalog.ts"
+  },
+  "devDependencies": { "@types/node": "26.6.6", "esbuild": "0.28.2", "typescript": "7.0.2" }
+}

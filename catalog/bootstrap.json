@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "packages": [
+    {
+      "name": "@deepseek-ai/dsh-experimental-api-speech-to-text",
+      "description": "Authenticated experimental speech transcription for browser clients",
+      "keywords": null,
+      "source_url": "https://registry.npmjs.org/%40deepseek-ai%2Fdsh-experimental-api-speech-to-text/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "@fast-csv/format",
+      "description": "fast-csv formatting module",
+      "keywords": [
+        "csv",
+        "format",
+        "write"
+      ],
+      "source_url": "https://registry.npmjs.org/%40fast-csv%2Fformat/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "@qvac/transcription-whispercpp",
+      "description": "transcription addon for qvac",
+      "keywords": [
+        "tether",
+        "addon",
+        "whisper",
+        "qvac"
+      ],
+      "source_url": "https://registry.npmjs.org/%40qvac%2Ftranscription-whispercpp/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "@transcribe/transcriber",
+      "description": "Transcribe speech to text in the browser.",
+      "keywords": [
+        "transcribejs",
+        "transcribe.js",
+        "shout",
+        "speech",
+        "transcribe",
+        "transcript",
+        "speech to text",
+        "wasm",
+        "AI LOL",
+        "\ud83e\udd2b"
+      ],
+      "source_url": "https://registry.npmjs.org/%40transcribe%2Ftranscriber/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "@tus/server",
+      "description": "Tus resumable upload protocol in Node.js",
+      "keywords": null,
+      "source_url": "https://registry.npmjs.org/%40tus%2Fserver/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "csv",
+      "description": "A mature CSV toolset with simple api, full of options and tested against large datasets.",
+      "keywords": [
+        "node",
+        "csv",
+        "tsv",
+        "parser",
+        "parse",
+        "stringifier",
+        "stringify",
+        "transform",
+        "stream",
+        "generate",
+        "generation",
+        "backend",
+        "frontend"
+      ],
+      "source_url": "https://registry.npmjs.org/csv/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "fast-csv",
+      "description": "CSV parser and writer",
+      "keywords": [
+        "csv",
+        "parser",
+        "fast",
+        "writer",
+        "csv writer",
+        "CSV"
+      ],
+      "source_url": "https://registry.npmjs.org/fast-csv/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "ngx-uploadx",
+      "description": "Angular Resumable Upload Module",
+      "keywords": [
+        "angular",
+        "chunk",
+        "resumable",
+        "tus",
+        "upload",
+        "uploadx"
+      ],
+      "source_url": "https://registry.npmjs.org/ngx-uploadx/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "p-limit",
+      "description": "Run multiple promise-returning & async functions with limited concurrency",
+      "keywords": [
+        "promise",
+        "limit",
+        "limited",
+        "concurrency",
+        "throttle",
+        "throat",
+        "rate",
+        "batch",
+        "ratelimit",
+        "task",
+        "queue",
+        "async",
+        "await",
+        "promises",
+        "bluebird"
+      ],
+      "source_url": "https://registry.npmjs.org/p-limit/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "papaparse",
+      "description": "Fast and powerful CSV parser for the browser that supports web workers and streaming large files. Converts CSV to JSON and JSON to CSV.",
+      "keywords": [
+        "csv",
+        "parser",
+        "parse",
+        "parsing",
+        "delimited",
+        "text",
+        "data",
+        "auto-detect",
+        "comma",
+        "tab",
+        "pipe",
+        "file",
+        "filereader",
+        "stream",
+        "worker",
+        "workers",
+        "thread",
+        "threading",
+        "multi-threaded"
+      ],
+      "source_url": "https://registry.npmjs.org/papaparse/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "transcription",
+      "description": "Documentation generator for ES6.",
+      "keywords": [
+        "transcription",
+        "documentation",
+        "ecmascript262",
+        "ecmascript6",
+        "es6"
+      ],
+      "source_url": "https://registry.npmjs.org/transcription/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    },
+    {
+      "name": "tus-js-client",
+      "description": "A pure JavaScript client for the tus resumable upload protocol",
+      "keywords": [
+        "tus",
+        "resumable",
+        "upload",
+        "protocol",
+        "progress",
+        "file",
+        "browser"
+      ],
+      "source_url": "https://registry.npmjs.org/tus-js-client/latest",
+      "fetched_at": "2026-11-16T22:53:20.267Z"
+    }
+  ],
+  "scope": "Discovery hints only; all facts and download counts are verified live before returning results."
+}

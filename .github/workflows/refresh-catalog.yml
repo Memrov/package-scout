@@ -1,0 +1,61 @@
+name: Build deps.dev API catalog
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated catalog as a GitHub Release
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deps-dev-catalog-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Test catalog builder
+        run: |
+          npm ci --ignore-scripts
+          npm run check
+          npm test
+      - name: Download the previous catalog if available
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag=$(gh release list --limit 100 --exclude-drafts --json tagName --jq '[.[] | select(.tagName | test("^catalog-[0-9]+-[0-9]+$"))][0].tagName // empty')
+          if [ -n "$tag" ]; then
+            gh release download "$tag" --pattern catalog.json --pattern manifest.json --dir build/previous
+            echo "CATALOG_PREVIOUS=build/previous/catalog.json" >> "$GITHUB_ENV"
+          fi
+      - name: Refresh bounded package metadata through public APIs
+        run: npm run catalog:refresh
+      - name: Publish complete immutable snapshot
+        if: github.event_name == 'schedule' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="catalog-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$tag" build/catalog/catalog.json build/catalog/manifest.json \
+            --draft --target "$GITHUB_SHA" --title "Catalog ${tag}" \
+            --notes 'npm and deps.dev v3alpha metadata. Provenance and checksum are in manifest.json. Evidence is metadata only; package functionality has not been certified.'
+          gh release edit "$tag" --draft=false --latest=false
