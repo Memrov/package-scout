@@ -50,7 +50,7 @@ npm provides keyword search, exact manifests, optional README content, and downl
 
 Each search inspects at most ten candidates and three catalog hints, with at most sixteen upstream requests. Fetches have a shared deadline, individual timeouts, response byte limits and bounded pagination. No automatic retries, package installs or package code execution occur.
 
-Cloudflare's native Cache API caches successful searches for five minutes and inspections for fifteen minutes. Cache hits preserve original evidence dates and use no upstream calls. Cache entries are public-source metadata indexed by hashed parameters. There is no D1, BigQuery, persistent user-query log, or server-side inference bill. Cache persistence is best effort.
+A bounded memory cache keeps successful searches for five minutes and inspections for fifteen minutes within a warm server instance. It stores at most 32 entries of at most 128 KiB each. Cache hits preserve original evidence dates and use no upstream calls. No provider-specific cache service or database is required. Entries contain public-source metadata indexed by hashed parameters. There is no D1, BigQuery, persistent user-query log, or server-side inference bill. Cache persistence across server instances and regions is best effort.
 
 The optional Actions workflow independently builds downloadable catalog snapshots from maintained public seeds. Hosted MCP requests never dispatch an Actions runner. Automatic persistent catalog growth and a public GitHub mirror are separate from this private plugin deployment.
 

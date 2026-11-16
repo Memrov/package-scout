@@ -121,6 +121,18 @@ test('a cached repeat makes no upstream calls and preserves the evidence timesta
   assert.equal(object(second.meta).as_of, object(first.meta).as_of);
 });
 
+test('warm-instance caching works without provider-specific storage', async () => {
+  const mock = upstream([{ name: 'good', downloads: 5000 }]);
+  const handler = createHandler({ ...mock, pause, cache: null });
+  const first = await call(handler, 'search_packages', { keywords: ['csv'] });
+  const count = mock.calls.length;
+  const second = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.equal(mock.calls.length, count);
+  assert.equal(object(second.meta).cache_layer, 'memory');
+  assert.equal(object(object(second.meta).upstream_requests).total, 0);
+  assert.equal(object(second.meta).as_of, object(first.meta).as_of);
+});
+
 test('unknown or unsafe parameters return a tool error without network work', async () => {
   const mock = upstream([]); const handler = createHandler({ ...mock, pause });
   for (const args of [{ name: '../secret' }, { name: 'good', version: '1; echo bad' }, { name: 'good', install: true }]) {

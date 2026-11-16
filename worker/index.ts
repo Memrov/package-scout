@@ -28,29 +28,36 @@ async function body(request: Request): Promise<Json> {
   return object(JSON.parse(text + decoder.decode()));
 }
 
-function defaultCache(): CacheLike | null {
-  return typeof caches === 'undefined' ? null : (caches as CacheStorage & { default?: CacheLike }).default ?? null;
-}
-
 export function createHandler(options: Options = {}) {
+  const memory = new Map<string, { data: Json; expires: number }>();
+  function cached(data: Json, ttl: number, layer: string): Json {
+    return { ...data, meta: { ...object(data.meta), cache_hit: true, cache_layer: layer, cache_ttl_seconds: ttl, upstream_requests: { total: 0, npm: 0, deps_dev: 0 } } };
+  }
   async function call(name: string, value: unknown, request: Request, ctx?: Context): Promise<Json> {
     const args = argumentsFor(name, value);
     const ttl = name === 'search_packages' ? 300 : 900;
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(args)));
     const digest = [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
     const key = new Request(new URL(`/__cache/package-scout-v2/${name}/${digest}`, request.url));
-    const cache = options.cache === undefined ? defaultCache() : options.cache;
+    const local = memory.get(key.url);
+    if (local && local.expires > Date.now()) return cached(local.data, ttl, 'memory');
+    if (local) memory.delete(key.url);
+    const cache = options.cache ?? null;
     if (cache) {
       try {
         const hit = await cache.match(key);
         if (hit) {
           const data = object(await hit.json());
-          return { ...data, meta: { ...object(data.meta), cache_hit: true, cache_ttl_seconds: ttl, upstream_requests: { total: 0, npm: 0, deps_dev: 0 } } };
+          return cached(data, ttl, 'adapter');
         }
       } catch { /* Cache availability must not block public metadata retrieval. */ }
     }
     const data = await executeTool(name, args, options);
-    data.meta = { ...object(data.meta), cache_ttl_seconds: ttl };
+    data.meta = { ...object(data.meta), cache_ttl_seconds: ttl, cache_layer: 'miss' };
+    if (Array.isArray(data.warnings) && !data.warnings.length && new TextEncoder().encode(JSON.stringify(data)).byteLength <= 131072) {
+      if (memory.size >= 32) { const oldest = memory.keys().next().value; if (oldest) memory.delete(oldest); }
+      memory.set(key.url, { data, expires: Date.now() + ttl * 1000 });
+    }
     if (cache && Array.isArray(data.warnings) && !data.warnings.length) {
       const put = cache.put(key, new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${ttl}` } })).catch(() => {});
       if (ctx) ctx.waitUntil(put); else await put;
