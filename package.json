@@ -13,7 +13,8 @@
     "test": "node --test scripts/refresh-catalog.test.ts worker/index.test.ts scripts/evaluate-package.test.mjs challenges/csv/challenge.test.mjs",
     "evaluate": "node scripts/evaluate-package.mjs",
     "catalog:refresh": "node scripts/refresh-catalog.ts",
-    "challenge": "node challenges/csv/run.mjs"
+    "challenge": "node challenges/csv/run.mjs",
+    "holes": "node scripts/rabbit-holes.ts"
   },
   "devDependencies": { "@types/node": "26.6.6", "esbuild": "0.28.2", "typescript": "7.0.2" }
 }

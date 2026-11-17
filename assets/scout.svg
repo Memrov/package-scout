@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="t">
+  <title id="t">Scout: a pair of half-asleep binoculars in a ranger hat</title>
+  <circle cx="120" cy="120" r="120" fill="#2e7d4f"/>
+  <circle cx="120" cy="120" r="108" fill="#f7f2e3"/>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#d9cdaa" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <g transform="translate(24 20) scale(1.6)">
+    <rect x="24" y="54" width="32" height="46" rx="13" fill="#26332c"/>
+    <rect x="64" y="54" width="32" height="46" rx="13" fill="#26332c"/>
+    <rect x="50" y="63" width="20" height="13" rx="5" fill="#3f5247"/>
+    <circle cx="40" cy="81" r="12.5" fill="#fbf6e6"/>
+    <circle cx="80" cy="81" r="12.5" fill="#fbf6e6"/>
+    <circle cx="43.5" cy="85" r="4.8" fill="#1c2620"/>
+    <circle cx="83.5" cy="85" r="4.8" fill="#1c2620"/>
+    <path d="M27.5 81a12.5 12.5 0 0 1 25 0zM67.5 81a12.5 12.5 0 0 1 25 0z" fill="#3f5247"/>
+    <ellipse cx="60" cy="47" rx="53" ry="10" fill="#a97c3f"/>
+    <path d="M35 46C35 22 45 11 60 11s25 11 25 35c-8 4-42 4-50 0z" fill="#c79a5b"/>
+    <path d="M35.4 37c8 4 41 4 49.2 0l.4 9c-8 4-42 4-50 0z" fill="#2e7d4f"/>
+    <circle cx="60" cy="43.5" r="3.4" fill="#f2c14e"/>
+  </g>
+</svg>

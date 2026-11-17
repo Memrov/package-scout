@@ -769,3 +769,17 @@ test('the homepage is self-contained, and its examples and figures are the real 
     assert.match(PAGE, new RegExp(`data-entrant="${result.id}" data-lines="${result.lines}" data-passed="${result.passed}"[\\s\\S]*?width:${result.passed * 10}%[\\s\\S]*?>${result.passed} of 10<`), result.id);
   }
 });
+
+test('the README quotes the recorded challenge results and the real number of built-ins', async () => {
+  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  const recorded = (id: string) => challenge.results.find(result => result.id === id)!;
+  for (const [id, label] of [['split', 'The quick way'], ['regex', 'The clever way'], ['state-machine', 'The careful way']]) {
+    assert.match(readme, new RegExp(`\\| ${label}[^|]*\\| ${recorded(id).lines} \\| ${recorded(id).passed} of 10 \\|`), id);
+  }
+  assert.ok(readme.includes(`| **${recorded('papaparse').lines}** | **${recorded('papaparse').passed} of 10** |`));
+  assert.ok(readme.includes(`There are ${PLATFORM.length} built-ins so far`));
+  // Every built-in the README shows off is in the catalog.
+  for (const builtin of ['String.prototype.padStart()', 'structuredClone()', 'crypto.randomUUID()', 'fetch()', '<input type="date">', '<dialog>', 'Intl.NumberFormat', 'util.parseArgs()', 'node --env-file', 'node:test']) {
+    assert.ok(readme.includes(`\`${builtin}\``) && PLATFORM.some(entry => entry.builtin === builtin), builtin);
+  }
+});
