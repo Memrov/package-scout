@@ -10,6 +10,7 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Memrov/package-scout/badge)](https://scorecard.dev/viewer/?uri=github.com/Memrov/package-scout)
 [![Test and build](https://github.com/Memrov/package-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/Memrov/package-scout/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@memrov2/package-scout)](https://www.npmjs.com/package/@memrov2/package-scout)
 
 Your AI agent loves writing code. Scout would rather not.
 
@@ -62,9 +63,24 @@ The server is bundled and starts automatically. No API key, hosted login,
 Claude account. See [the plugin guide](docs/claude-code-plugin.md) for updates,
 troubleshooting and development.
 
+### Other MCP clients: npm
+
+With Node 24.3+, configure a stdio MCP server with:
+
+```json
+{
+  "command": "npx",
+  "args": ["--yes", "@memrov2/package-scout@1.0.1"]
+}
+```
+
+The [npm package](https://www.npmjs.com/package/@memrov2/package-scout) has no
+runtime dependencies. See [the client setup](docs/npm-package.md) and
+[signed release](https://github.com/Memrov/package-scout/releases/tag/release-v1.0.1).
+
 ### ChatGPT, Codex, or another MCP client
 
-The maintained [hosted copy](https://package-scout-npm-20261116.dscott2017.chatgpt.site) uses Sites sign-in and is currently restricted to accounts granted access. In ChatGPT or Codex, use the existing Package Scout plugin. To run your own copy without hosted access, follow the setup below.
+The maintained [hosted copy](https://package-scout-npm-20261116.dscott2017.chatgpt.site) uses Sites sign-in for API access. In ChatGPT or Codex, use the existing Package Scout plugin. To run your own HTTP server, follow the setup below.
 
 Run it. You need Node 24.3 or newer.
 
@@ -264,6 +280,8 @@ Scout adds one question before that last rung: is this a rabbit hole someone has
 - [Agent-written evaluations](docs/package-evaluation.md): the Prove it step.
 - [The CSV challenge](challenges/csv): the ten files, the entrants and how to bring your own parser.
 - [The agent skill](plugin/skills/package-discovery/SKILL.md): how an agent is told to use Scout.
+- [Security controls and evidence](docs/openssf-readiness.md): OpenSSF results, signed releases and the requirements still unmet.
+- [npm releases](docs/npm-releases.md): publication, provenance verification and future trusted publishing.
 
 ## Development
 

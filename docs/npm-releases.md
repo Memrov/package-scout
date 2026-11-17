@@ -21,10 +21,17 @@ the two tools.
 
 ## Initial publication
 
+`@memrov2/package-scout@1.0.1` is [published](https://www.npmjs.com/package/@memrov2/package-scout)
+with native npm provenance from [this Actions run](https://github.com/Memrov/package-scout/actions/runs/44041423807).
+The temporary bootstrap secret was deleted after publication. A clean registry
+installation, `npm audit signatures`, and official MCP SDK checks passed; the
+tarball matches the [immutable signed release](https://github.com/Memrov/package-scout/releases/tag/release-v1.0.1).
+See [the recorded evidence](release-verification-2026-11-17.json).
+
 The unscoped `package-scout` name belongs to an unrelated publisher. This source
-prepares `@memrov2/package-scout`, using the authenticated publisher's personal
-scope. A prepared manifest or successful dry run
-does not mean the package has been published.
+publishes `@memrov2/package-scout`, using the authenticated publisher's personal
+scope. For subsequent releases, a prepared manifest or successful dry run alone
+does not establish publication.
 
 For the first release, an authorized npm owner can supply a narrowly scoped npm
 token through the encrypted GitHub Actions secret `NPM_BOOTSTRAP_TOKEN`. Run
@@ -53,7 +60,7 @@ to the next release: npm currently expires a new configuration if its first
 successful publish does not happen within two days.
 
 Bump the package version, regenerate both distributions as needed, run the
-checks, commit and push. Push a matching tag such as `npm-v1.0.1` or manually run
+checks, commit and push. Push a matching tag such as `npm-v1.0.2` or manually run
 the publish workflow from `main`. The workflow validates the tag against the
 package version and publishes with provenance from a GitHub-hosted runner.
 The first publication still needs npm account authorization; GitHub access

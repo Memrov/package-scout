@@ -7,9 +7,10 @@ up to date with `main` and resolve review conversations.
 
 The current code owner is `@Memrov`. Independent maintainer review is encouraged;
 additional code owners should be people who have agreed to take that role.
-Automated checks do not constitute independent human approval. The proposed
+Automated checks do not constitute independent human approval. The active
 single-maintainer ruleset requires a PR and CI, with no fabricated reviewer
 accounts or mandatory approvals from unavailable collaborators.
+CodeQL errors and high/critical security alerts also block a merge.
 
 ## Local checks
 
