@@ -1,0 +1,25 @@
+{
+  "about": "Jobs that look like ten lines and are not. `npm run holes` runs each search live and prints the README table.",
+  "holes": [
+    { "job": "Parse a CSV upload", "keywords": ["csv parser"], "runtime": "browser" },
+    { "job": "Render Markdown", "keywords": ["markdown parser"] },
+    { "job": "Read YAML", "keywords": ["yaml", "parser"] },
+    { "job": "Drag and drop", "keywords": ["drag and drop"], "runtime": "browser" },
+    { "job": "Generate a PDF", "keywords": ["pdf", "generate"] },
+    { "job": "Fuzzy search", "keywords": ["fuzzy search"] },
+    { "job": "Retry with backoff", "keywords": ["retry", "backoff"] },
+    { "job": "Highlight code", "keywords": ["syntax highlighting"] },
+    { "job": "Verify a JWT", "keywords": ["jwt"], "runtime": "node" },
+    { "job": "Handle time zones", "keywords": ["timezone"] },
+    { "job": "Diff two texts", "keywords": ["text diff"] },
+    { "job": "Read and write zip files", "keywords": ["zip"] },
+    { "job": "Read an Excel file", "keywords": ["xlsx"] },
+    { "job": "Resize an image", "keywords": ["image", "resize"], "runtime": "node" },
+    { "job": "Show a toast", "keywords": ["toast"], "runtime": "browser" },
+    { "job": "Draw a chart", "keywords": ["charts"], "runtime": "browser" },
+    { "job": "Run a WebSocket server", "keywords": ["websocket"], "runtime": "node" },
+    { "job": "Cache with eviction", "keywords": ["lru cache"] },
+    { "job": "Rate-limit an API", "keywords": ["rate limit"], "runtime": "node" },
+    { "job": "Compare versions", "keywords": ["semver"] }
+  ]
+}

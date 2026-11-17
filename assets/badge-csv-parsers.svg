@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="34" viewBox="0 0 240 34" role="img" aria-label="CSV PARSERS WRITTEN: 0">
+  <title>CSV PARSERS WRITTEN: 0</title>
+  <rect width="240" height="34" rx="17" fill="#1c2620"/>
+  <path d="M194 0h29a17 17 0 0 1 0 34h-29z" fill="#2e7d4f"/>
+  <rect x="3.5" y="3.5" width="233" height="27" rx="13.5" fill="none" stroke="#fbf6e6" stroke-opacity=".55" stroke-dasharray="1.5 4" stroke-linecap="round"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="700" letter-spacing="1.2" text-anchor="middle">
+    <text x="100.0" y="21.5" fill="#fbf6e6">CSV PARSERS WRITTEN</text>
+    <text x="215.0" y="21.5" fill="#ffffff">0</text>
+  </g>
+</svg>

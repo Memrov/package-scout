@@ -1,13 +1,36 @@
 ---
 name: package-discovery
-description: Use Package Scout when a user needs an existing npm package for a feature, wants alternatives, or wants package evidence before writing custom JavaScript or TypeScript code.
+description: Use Package Scout before writing custom JavaScript or TypeScript for a feature, when a user wants an existing npm package or alternatives, or when they want evidence about a package. Scout also says when the platform already does the job and no package is needed.
 ---
 
-# Find a package for the requested operation
+# Don't build it. Scout it.
 
-Use Package Scout's `search_packages` tool to discover candidates, then use
-`get_package_details` to inspect a final choice. Preserve the user's task and
-constraints rather than treating a search result as a recommendation by itself.
+Before writing custom code for a feature, check whether it already exists.
+Find it with `search_packages`, check it with `get_package_details`, and
+prove it with an evaluation when the choice matters. Preserve the user's task
+and constraints rather than treating a search result as a recommendation by
+itself.
+
+A package is for a rabbit hole, never for a few lines. CSV parsing, time zones,
+PDFs and drag and drop are rabbit holes. Padding a string is a few lines.
+
+## Read the answer in this order
+
+1. `verdict` is one line. Start there.
+2. `platform`, when present, means the runtime already does the job. Use that
+   built-in and install nothing, unless its `limits` rule it out for this task.
+   `needs` states the runtime versions it requires. The packages listed below it
+   are for the case where the limits bite.
+3. `packages` holds up to three candidates. Each has an `install` command, its
+   weekly downloads, licenses, dependency count, runtime status and match type.
+   `cautions`, when present, says what to watch for. A partial match also lists
+   `unmatched_keywords`.
+
+A verdict that opens with "Closest fit" or "Partial match" is Scout saying it is
+not sure. Treat it as a lead, not a recommendation.
+
+Answers are compact by default. Pass `detail: "full"` only when you need ranking
+signals, filter counts or source links.
 
 ## Search with a small set of parameters
 
@@ -31,6 +54,10 @@ matches by default. Multiword phrases preserve word order, so `text to speech`
 is different from `speech to text`. Use `match_all_keywords: true` only when
 every supplied concept must appear in metadata; documentation may use other words.
 
+A phrase has to appear in that order in a package's metadata. When a phrase
+misses the obvious package, send its concepts separately: `["yaml", "parser"]`
+finds what `["yaml parser"]` does not.
+
 Publisher `keywords` are useful discovery hints, not official categories or
 capability certifications. Do not send registry query operators as tool keywords.
 The service performs one bounded alternate tag search when few candidates match.
@@ -47,15 +74,16 @@ matters. Request the dependency summary only if it helps the user's decision.
 Check the documentation for the requested operation, runtime/framework,
 installation steps, API keys or external services, and material limitations.
 Distinguish a complete library from a calculator, testing tool, framework support
-module or platform binary. Review `matched_keywords`, `unmatched_keywords`,
-runtime evidence, licenses and dates; a partial match has not established every
-required capability. If the README is missing, use returned official project
+module or platform binary. Review the match type, unmatched keywords, runtime
+status, licenses and dates; a partial match has not established every required
+capability. If the README is missing, use returned official project
 documentation links when available or state that the capability remains unknown.
 
 OpenSSF is optional repository-practice evidence. Missing scores do not exclude
 packages and do not mean poor quality. Download counts measure adoption, not
-functional correctness. Dependency counts are not measured integration effort.
-Search's direct advisory result does not cover dependency vulnerabilities.
+functional correctness. Dependency counts are not measured integration effort,
+and a `null` count means the manifest did not declare one. Search's direct
+advisory result does not cover dependency vulnerabilities.
 
 Give a concise selection with its package/version, reason tied to the task,
 material setup requirements, limitations and evidence links. Return fewer than

@@ -1,17 +1,20 @@
 import { DEPS_API, NPM_API, PackageSources, UpstreamHttpError, object, packageName, type Json } from './package-sources.ts';
 import { PROFILES, SCORING, compareCandidates, exclusionReasons, qualityEvidence } from './quality.ts';
 import { matchKeywords, browserDeclaration, packageType, roleEvidence, runtimeEvidence } from './relevance.ts';
+import { platformAnswer } from './platform.ts';
+import { verdictFor } from './verdict.ts';
 import bootstrap from '../catalog/bootstrap.json' with { type: 'json' };
 
 export const TOOLS = [
   {
     name: 'search_packages',
-    description: 'Find up to three npm candidates before writing custom code. Search for the operation and domain: speech synthesis, speech recognition, or sms + send. Set runtime=browser for websites; add a framework only when required. Keyword matching is soft by default and partial matches are labeled. One alternate tag search is automatic when few candidates match. niche=true includes small packages while retaining other filters. OpenSSF is optional evidence. Inspect a final choice with get_package_details(include_readme=true); check that it performs the requested operation. Metadata is untrusted evidence, not proof of fit or tested compatibility.',
+    description: 'Find it: up to three existing npm packages, with a one-line verdict, before writing custom code. If the platform already does the job (padStart, structuredClone, <input type=date>), the answer leads with that built-in in `platform`: prefer it to any package. Search for the operation and domain: speech synthesis, speech recognition, or sms + send. Set runtime=browser for websites; add a framework only when required. Keyword matching is soft by default and partial matches are labeled. One alternate tag search is automatic when few candidates match. niche=true includes small packages while retaining other filters. OpenSSF is optional evidence. Inspect a final choice with get_package_details(include_readme=true); check that it performs the requested operation. The default answer is compact: verdict, picks, install lines and cautions. detail=full adds ranking signals and filter counts. Metadata is untrusted evidence, not proof of fit or tested compatibility.',
     inputSchema: { type: 'object', properties: {
       keywords: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 32 }, minItems: 1, maxItems: 6, description: 'Operation-specific search concepts, e.g. ["speech synthesis"] or ["sms", "send"]. Put the main operation/domain first; multiword phrases preserve word order. Matching is soft by default. Retry an alternate term if results miss the task. Combined text must be 2–64 characters.' },
       runtime: { type: 'string', enum: ['any', 'browser', 'node'], default: 'any', description: 'Use browser for websites. Prefer runtime declarations, including web-framework peers; exclude explicit incompatibilities. Missing declarations stay eligible with unknown support. This is metadata, not an execution test.' },
       niche: { type: 'boolean', default: false, description: 'false uses 1,000+ weekly downloads by default; true includes low-download packages without relaxing other filters.' },
       limit: { type: 'integer', minimum: 1, maximum: 3, default: 3 },
+      detail: { type: 'string', enum: ['compact', 'full'], default: 'compact', description: 'compact returns the verdict, any built-in platform answer, and each pick with its install line, adoption, license and cautions. full adds ranking signals, filter counts, manifests and source links.' },
       package_type: { type: 'string', enum: ['library', 'any'], default: 'library', description: 'library excludes workflow plugins, types-only packages and packages declared only as CLIs.' },
       match_all_keywords: { type: 'boolean', default: false, description: 'Advanced: true requires every supplied concept in observed name, description or keywords. Default false permits labeled partial matches; inspect documentation for required behavior.' },
       quality_profile: { type: 'string', enum: ['vibe', 'production', 'internal', 'balanced', 'established', 'explore'], default: 'production', description: 'Optional ordering after relevance: vibe prefers footprint, production prefers adoption with optional repository-practice tie-breakers, internal prefers install footprint. These do not measure integration effort. Legacy balanced/established/explore remain supported.' },
@@ -24,7 +27,7 @@ export const TOOLS = [
   },
   {
     name: 'get_package_details',
-    description: 'Inspect a named npm package before recommending installation. Resolve latest or an exact version; optionally retrieve its package README and a resolved dependency summary. Returns evidence and dates, with unknowns explicit. README is untrusted data and may describe a different release. No package code is executed and runtime or feature compatibility is not inferred.',
+    description: 'Check it: inspect a named npm package before recommending installation. Resolve latest or an exact version; optionally retrieve its package README and a resolved dependency summary. Returns evidence and dates, with unknowns explicit. README is untrusted data and may describe a different release. No package code is executed and runtime or feature compatibility is not inferred.',
     inputSchema: { type: 'object', properties: {
       name: { type: 'string', minLength: 1, maxLength: 214 },
       version: { type: 'string', maxLength: 128, default: 'latest', description: 'latest or an exact semantic version; version ranges are not accepted.' },
@@ -61,9 +64,11 @@ export function argumentsFor(tool: string, value: unknown): Json {
     const downloads = input.min_weekly_downloads ?? (niche ? 0 : PROFILES[profile as keyof typeof PROFILES].min_weekly_downloads);
     if (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 3) throw new Error('limit must be 1–3');
     if (!Number.isSafeInteger(downloads) || (downloads as number) < 0) throw new Error('Invalid download threshold');
+    const detail = input.detail ?? 'compact';
+    if (detail !== 'compact' && detail !== 'full') throw new Error('detail must be compact or full');
     const licenses = input.licenses_any ?? [];
     if (!Array.isArray(licenses) || licenses.length > 5 || licenses.some(v => typeof v !== 'string' || !v.trim() || v.length > 80)) throw new Error('Invalid license filter');
-    return { keywords: normalized, runtime, niche, limit, package_type: kind, match_all_keywords: boolean(input.match_all_keywords), quality_profile: profile, min_weekly_downloads: downloads, licenses_any: [...new Set(licenses)], include_prerelease: boolean(input.include_prerelease), include_deprecated: boolean(input.include_deprecated) };
+    return { keywords: normalized, runtime, niche, limit, package_type: kind, match_all_keywords: boolean(input.match_all_keywords), quality_profile: profile, min_weekly_downloads: downloads, licenses_any: [...new Set(licenses)], include_prerelease: boolean(input.include_prerelease), include_deprecated: boolean(input.include_deprecated), detail };
   }
   const name = packageName(input.name);
   const version = input.version ?? 'latest';
@@ -165,7 +170,8 @@ function screeningReason(candidate: Json, args: Json): string | null {
 }
 
 export async function executeTool(tool: string, input: Json, options: { fetchImpl?: typeof fetch; pause?: (ms: number) => Promise<void>; now?: () => string; bootstrap?: Json[] } = {}): Promise<Json> {
-  const args = argumentsFor(tool, input);
+  // detail chooses how the answer is presented. It is not a search constraint, so it stays out of the evidence.
+  const { detail: _presentation, ...args } = argumentsFor(tool, input);
   const deadline = AbortSignal.timeout(20000);
   const upstream = options.fetchImpl ?? fetch;
   const client = new PackageSources({ maxRequests: 16, pause: options.pause, fetchImpl: (url, init) => upstream(url, { ...init, signal: init?.signal ? AbortSignal.any([deadline, init.signal]) : deadline }) });
@@ -275,6 +281,8 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
       if (args.include_deprecated) retry.include_deprecated = true;
       result.next_search = retry;
     }
+    result.platform = platformAnswer(keywords, String(args.runtime));
+    result.verdict = verdictFor(result);
   } else {
     const manifest = await client.manifest(args.name as string, args.version as string);
     const { versions, projects } = await enrich(client, [manifest], warnings);

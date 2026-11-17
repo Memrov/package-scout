@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="178" height="34" viewBox="0 0 178 34" role="img" aria-label="AI INSIDE: NONE">
+  <title>AI INSIDE: NONE</title>
+  <rect width="178" height="34" rx="17" fill="#1c2620"/>
+  <path d="M110 0h51a17 17 0 0 1 0 34h-51z" fill="#a8431a"/>
+  <rect x="3.5" y="3.5" width="171" height="27" rx="13.5" fill="none" stroke="#fbf6e6" stroke-opacity=".55" stroke-dasharray="1.5 4" stroke-linecap="round"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="700" letter-spacing="1.2" text-anchor="middle">
+    <text x="58.0" y="21.5" fill="#fbf6e6">AI INSIDE</text>
+    <text x="142.0" y="21.5" fill="#ffffff">NONE</text>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="t d">
+  <title id="t">Package Scout. Don't build it. Scout it.</title>
+  <desc id="d">Scout, a pair of half-asleep binoculars in a ranger hat, next to the words: Don't build it. Scout it. A stamp reads: No AI inside.</desc>
+  <rect width="1200" height="420" rx="28" fill="#f7f2e3"/>
+  <rect x="14" y="14" width="1172" height="392" rx="18" fill="none" stroke="#d9cdaa" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round"/>
+  <text x="72" y="112" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="600" letter-spacing="3.4" fill="#1f6a40">A LAZY DEVELOPER FOR YOUR AI AGENT</text>
+  <text font-family="Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif" font-size="96" font-weight="700" fill="#1c2620" letter-spacing="-1.5">
+    <tspan x="68" y="216">Don't build it.</tspan>
+    <tspan x="68" y="318">Scout it.</tspan>
+  </text>
+  <text x="72" y="366" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" fill="#47524a">Before your agent writes it, Scout checks whether someone already did.</text>
+  <g transform="translate(896 50) scale(2.3)">
+    <rect x="24" y="54" width="32" height="46" rx="13" fill="#26332c"/>
+    <rect x="64" y="54" width="32" height="46" rx="13" fill="#26332c"/>
+    <rect x="50" y="63" width="20" height="13" rx="5" fill="#3f5247"/>
+    <circle cx="40" cy="81" r="12.5" fill="#fbf6e6"/>
+    <circle cx="80" cy="81" r="12.5" fill="#fbf6e6"/>
+    <circle cx="43.5" cy="85" r="4.8" fill="#1c2620"/>
+    <circle cx="83.5" cy="85" r="4.8" fill="#1c2620"/>
+    <path d="M27.5 81a12.5 12.5 0 0 1 25 0zM67.5 81a12.5 12.5 0 0 1 25 0z" fill="#3f5247"/>
+    <ellipse cx="60" cy="47" rx="53" ry="10" fill="#a97c3f"/>
+    <path d="M35 46C35 22 45 11 60 11s25 11 25 35c-8 4-42 4-50 0z" fill="#c79a5b"/>
+    <path d="M35.4 37c8 4 41 4 49.2 0l.4 9c-8 4-42 4-50 0z" fill="#2e7d4f"/>
+    <circle cx="60" cy="43.5" r="3.4" fill="#f2c14e"/>
+  </g>
+  <g transform="translate(1062 350) rotate(-8)">
+    <rect x="-96" y="-25" width="192" height="50" rx="9" fill="#f7f2e3" stroke="#a8431a" stroke-width="3.5"/>
+    <text x="0" y="7.5" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20" font-weight="700" letter-spacing="3" fill="#a8431a">NO AI INSIDE</text>
+  </g>
+</svg>

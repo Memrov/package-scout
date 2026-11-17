@@ -1,0 +1,120 @@
+{
+  "node": "v22.23.4",
+  "files": [
+    {
+      "id": "plain",
+      "rule": "The easy one"
+    },
+    {
+      "id": "quoted-comma",
+      "rule": "RFC 4180, rule 6"
+    },
+    {
+      "id": "escaped-quote",
+      "rule": "RFC 4180, rule 7"
+    },
+    {
+      "id": "newline-in-field",
+      "rule": "RFC 4180, rule 6"
+    },
+    {
+      "id": "crlf",
+      "rule": "RFC 4180, rule 1"
+    },
+    {
+      "id": "no-trailing-newline",
+      "rule": "RFC 4180, rule 2"
+    },
+    {
+      "id": "empty-fields",
+      "rule": "Real exports"
+    },
+    {
+      "id": "trailing-blank-line",
+      "rule": "Real exports"
+    },
+    {
+      "id": "byte-order-mark",
+      "rule": "Real exports"
+    },
+    {
+      "id": "spaces-kept",
+      "rule": "RFC 4180, rule 4"
+    }
+  ],
+  "results": [
+    {
+      "id": "split",
+      "label": "The quick way: `split(\",\")`",
+      "kind": "hand-rolled",
+      "lines": 5,
+      "passed": 6,
+      "failed": [
+        {
+          "id": "quoted-comma",
+          "reason": "wrong rows"
+        },
+        {
+          "id": "escaped-quote",
+          "reason": "wrong rows"
+        },
+        {
+          "id": "newline-in-field",
+          "reason": "wrong rows"
+        },
+        {
+          "id": "crlf",
+          "reason": "wrong rows"
+        }
+      ]
+    },
+    {
+      "id": "regex",
+      "label": "The clever way: a regex",
+      "kind": "hand-rolled",
+      "lines": 7,
+      "passed": 9,
+      "failed": [
+        {
+          "id": "newline-in-field",
+          "reason": "wrong rows"
+        }
+      ]
+    },
+    {
+      "id": "state-machine",
+      "label": "The careful way: a state machine",
+      "kind": "hand-rolled",
+      "lines": 35,
+      "passed": 10,
+      "failed": []
+    },
+    {
+      "id": "papaparse",
+      "label": "`papaparse`",
+      "kind": "scout",
+      "lines": 2,
+      "version": "5.7.1",
+      "passed": 10,
+      "failed": []
+    },
+    {
+      "id": "csv-parse",
+      "label": "`csv-parse`",
+      "kind": "scout",
+      "lines": 2,
+      "version": "7.0.3",
+      "passed": 10,
+      "failed": []
+    },
+    {
+      "id": "fast-csv",
+      "label": "`fast-csv`",
+      "kind": "scout",
+      "lines": 8,
+      "version": "5.0.8",
+      "passed": 10,
+      "failed": []
+    }
+  ]
+}
