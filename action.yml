@@ -1,0 +1,30 @@
+name: Evaluate an npm package
+description: Run an agent-written package evaluation in a disposable Linux container and collect its evidence.
+inputs:
+  evaluation:
+    description: Evaluation JSON, or the path to an evaluation JSON file in the caller's checkout.
+    required: true
+  timeout_minutes:
+    description: Total job budget in minutes; execution stops 30 seconds early to collect evidence.
+    default: '20'
+outputs:
+  report_path:
+    description: Directory containing report.json, logs, and agent-produced artifacts.
+    value: ${{ steps.evaluate.outputs.report_path }}
+  status:
+    description: succeeded, failed, or timed_out; describes execution of this evaluation only.
+    value: ${{ steps.evaluate.outputs.status }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: '24'
+    - name: Run the agent's evaluation
+      id: evaluate
+      shell: bash
+      env:
+        PACKAGE_SCOUT_ACTION_PATH: ${{ github.action_path }}
+        PACKAGE_SCOUT_EVALUATION: ${{ inputs.evaluation }}
+        PACKAGE_SCOUT_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+      run: node "$PACKAGE_SCOUT_ACTION_PATH/scripts/evaluate-package.mjs"

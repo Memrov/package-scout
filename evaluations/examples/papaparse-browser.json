@@ -1,0 +1,26 @@
+{
+  "title": "A website customer-import form using Papa Parse in Chromium",
+  "package": {
+    "name": "papaparse",
+    "version": "5.7.1"
+  },
+  "image": "mcr.microsoft.com/playwright:v1.56.1-noble",
+  "setup": "npm install --save-exact --no-audit --no-fund playwright@1.56.1 esbuild@0.28.2",
+  "files": {
+    "evaluate.mjs": "import assert from 'node:assert/strict';\nimport { readFile, writeFile } from 'node:fs/promises';\nimport { build } from 'esbuild';\nimport { chromium } from 'playwright';\n\nconst input = JSON.parse(await readFile(process.env.EVALUATION_INPUT, 'utf8'));\nawait build({\n  stdin: { contents: `import Papa from 'papaparse'; document.querySelector('button').onclick=()=>{const parsed=Papa.parse(document.querySelector('textarea').value,{header:true,skipEmptyLines:true}); document.querySelector('pre').textContent=JSON.stringify(parsed.data);};`, resolveDir: process.cwd() },\n  bundle: true, platform: 'browser', format: 'iife', outfile: 'bundle.js',\n});\nconst browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });\nconst observations = { browser_version: browser.version(), input: input.csv, expected: input.expected };\ntry {\n  const page = await browser.newPage({ viewport: { width: 900, height: 600 } });\n  await page.setContent('<!doctype html><html lang=\"en\"><title>Customer CSV import</title><body><h1>Import customers</h1><label>CSV data<textarea aria-label=\"CSV data\" rows=\"8\" cols=\"60\"></textarea></label><br><button>Import</button><pre aria-label=\"Imported customers\"></pre></body></html>');\n  await page.addScriptTag({ path: 'bundle.js' });\n  await page.getByRole('textbox', { name: 'CSV data' }).fill(input.csv);\n  await page.getByRole('button', { name: 'Import' }).click();\n  observations.actual = JSON.parse(await page.getByLabel('Imported customers').textContent());\n  await page.screenshot({ path: `${process.env.EVALUATION_ARTIFACTS}/csv-browser.png`, fullPage: true });\n  assert.deepEqual(observations.actual, input.expected);\n} finally {\n  await browser.close();\n  await writeFile(process.env.EVALUATION_RESULTS, JSON.stringify(observations, null, 2));\n}\n"
+  },
+  "input": {
+    "csv": "name,email\n\"Scott, Darian\",darian@example.test\nAda,ada@example.test\n",
+    "expected": [
+      {
+        "name": "Scott, Darian",
+        "email": "darian@example.test"
+      },
+      {
+        "name": "Ada",
+        "email": "ada@example.test"
+      }
+    ]
+  },
+  "run": "node evaluate.mjs"
+}

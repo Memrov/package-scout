@@ -1,0 +1,47 @@
+{
+  "title": "Customer CSV import through a temporary HTTP API",
+  "package": {
+    "name": "papaparse",
+    "version": "5.7.1"
+  },
+  "files": {
+    "evaluate.mjs": "import assert from 'node:assert/strict';\nimport { createServer } from 'node:http';\nimport { once } from 'node:events';\nimport { readFile, writeFile } from 'node:fs/promises';\nimport Papa from 'papaparse';\n\nconst cases = JSON.parse(await readFile(process.env.EVALUATION_INPUT, 'utf8'));\nconst observations = [];\nconst server = createServer(async (request, response) => {\n  try {\n    const chunks = [];\n    for await (const chunk of request) chunks.push(chunk);\n    const { csv } = JSON.parse(Buffer.concat(chunks).toString());\n    const result = Papa.parse(csv, { header: true, skipEmptyLines: true });\n    response.writeHead(200, { 'content-type': 'application/json' });\n    response.end(JSON.stringify(result));\n  } catch (error) {\n    response.writeHead(400, { 'content-type': 'application/json' });\n    response.end(JSON.stringify({ error: error.message }));\n  }\n});\nserver.listen(0, '127.0.0.1');\nawait once(server, 'listening');\ntry {\n  for (const item of cases) {\n    const response = await fetch(`http://127.0.0.1:${server.address().port}/parse`, {\n      method: 'POST', headers: { 'content-type': 'application/json' },\n      body: JSON.stringify({ csv: item.csv }),\n    });\n    const actual = await response.json();\n    const observation = { name: item.name, input: item.csv, expected: item.expected, actual: actual.data, errors: actual.errors, status: response.status };\n    observations.push(observation);\n    assert.equal(response.status, 200);\n    assert.deepEqual(actual.errors, []);\n    assert.deepEqual(actual.data, item.expected);\n  }\n} finally {\n  server.closeAllConnections();\n  await new Promise((resolve) => server.close(resolve));\n  await writeFile(process.env.EVALUATION_RESULTS, JSON.stringify({ cases_run: observations.length, observations }, null, 2));\n  await writeFile(`${process.env.EVALUATION_ARTIFACTS}/http-observations.json`, JSON.stringify(observations, null, 2));\n}\n"
+  },
+  "input": [
+    {
+      "name": "headers and quoted commas",
+      "csv": "name,email\n\"Scott, Darian\",darian@example.test\n",
+      "expected": [
+        {
+          "name": "Scott, Darian",
+          "email": "darian@example.test"
+        }
+      ]
+    },
+    {
+      "name": "empty fields and blank lines",
+      "csv": "name,email\nAda,\n\nLin,lin@example.test\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": ""
+        },
+        {
+          "name": "Lin",
+          "email": "lin@example.test"
+        }
+      ]
+    },
+    {
+      "name": "escaped quotes",
+      "csv": "name,email\n\"The \"\"Quoted\"\" Name\",a@example.test\n",
+      "expected": [
+        {
+          "name": "The \"Quoted\" Name",
+          "email": "a@example.test"
+        }
+      ]
+    }
+  ],
+  "run": "node evaluate.mjs"
+}

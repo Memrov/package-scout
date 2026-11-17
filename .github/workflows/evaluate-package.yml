@@ -1,0 +1,41 @@
+name: Evaluate npm package
+run-name: Package evaluation by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      evaluation:
+        description: Agent-written evaluation JSON, or a JSON file path in this repository
+        type: string
+        required: true
+        default: evaluations/examples/papaparse.json
+      timeout_minutes:
+        description: Job budget in minutes (1–360)
+        type: number
+        default: 20
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Execute the agent's evaluation
+        id: evaluation
+        uses: ./
+        with:
+          evaluation: ${{ inputs.evaluation }}
+          timeout_minutes: ${{ inputs.timeout_minutes }}
+      - name: Upload evidence, including failed evaluations
+        if: always() && steps.evaluation.outputs.report_path != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.evaluation.outputs.report_path }}
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,24 @@
+{
+  "title": "Bound concurrent work while preserving results and propagating errors",
+  "package": {
+    "name": "p-limit",
+    "version": "7.3.3"
+  },
+  "files": {
+    "evaluate.mjs": "import assert from 'node:assert/strict';\nimport { readFile, writeFile } from 'node:fs/promises';\nimport pLimit from 'p-limit';\n\nconst { concurrency, values } = JSON.parse(await readFile(process.env.EVALUATION_INPUT, 'utf8'));\nconst limit = pLimit(concurrency);\nlet active = 0;\nlet peak = 0;\nconst observations = {};\ntry {\n  const actual = await Promise.all(values.map((value) => limit(async () => {\n    active += 1;\n    peak = Math.max(peak, active);\n    await new Promise((resolve) => setTimeout(resolve, 15 + (value % 3) * 5));\n    active -= 1;\n    return value * 2;\n  })));\n  observations.overlap = { concurrency, peak, active_after: active, input: values, actual, expected: values.map((value) => value * 2) };\n  assert.equal(peak, concurrency);\n  assert.equal(active, 0);\n  assert.deepEqual(actual, observations.overlap.expected);\n  assert.equal(limit.activeCount, 0);\n  assert.equal(limit.pendingCount, 0);\n  let propagated = false;\n  await assert.rejects(limit(async () => { throw new Error('expected rejection'); }), (error) => {\n    propagated = error.message === 'expected rejection';\n    return propagated;\n  });\n  observations.rejection_propagated = propagated;\n  const recovery = await limit(async () => 'still works');\n  observations.recovery = recovery;\n  assert.equal(recovery, 'still works');\n} finally {\n  await writeFile(process.env.EVALUATION_RESULTS, JSON.stringify(observations, null, 2));\n}\n"
+  },
+  "input": {
+    "concurrency": 3,
+    "values": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ]
+  },
+  "run": "node evaluate.mjs"
+}

@@ -26,6 +26,12 @@ Example tool arguments:
 
 The same functions power `POST /v1/search` and `POST /v1/package`. MCP is at `POST /mcp`; `GET /health` checks service configuration without upstream calls.
 
+## Run an agent-written evaluation
+
+The [GitHub workflow](.github/workflows/evaluate-package.yml) and [reusable Action](action.yml) execute an agent's own test project in a disposable Linux container. The agent chooses its scripts, assertions, inputs, setup, and container image. It can wrap a package in a temporary HTTP server or install a browser. Results, logs, versions, lockfiles, and additional evidence are uploaded even when assertions fail. See [the evaluation guide](docs/package-evaluation.md) for request fields, examples, dispatch commands, and how to inspect the evidence.
+
+This workflow is separate from the hosted MCP's search and inspection tools. It does not make a model call or add another hosted service.
+
 ## Filtering and scoring
 
 Balanced discovery requires at least 100 weekly downloads, an identified license, and deps.dev version evidence. Established raises the download floor to 10,000. Explore removes the adoption and evidence floors. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested.
@@ -52,7 +58,7 @@ Each search inspects at most ten candidates and three catalog hints, with at mos
 
 A bounded memory cache keeps successful searches for five minutes and inspections for fifteen minutes within a warm server instance. It stores at most 32 entries of at most 128 KiB each. Cache hits preserve original evidence dates and use no upstream calls. No provider-specific cache service or database is required. Entries contain public-source metadata indexed by hashed parameters. There is no D1, BigQuery, persistent user-query log, or server-side inference bill. Cache persistence across server instances and regions is best effort.
 
-The optional Actions workflow independently builds downloadable catalog snapshots from maintained public seeds. Hosted MCP requests never dispatch an Actions runner. Automatic persistent catalog growth and a public GitHub mirror are separate from this private plugin deployment.
+The optional Actions workflow independently builds downloadable catalog snapshots from maintained public seeds. Hosted MCP requests never dispatch an Actions runner. Automatic persistent catalog growth is separate from this private plugin deployment. Application source and evaluation workflows are maintained in [Memrov/package-scout](https://github.com/Memrov/package-scout).
 
 ## Development
 
