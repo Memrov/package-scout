@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = fileURLToPath(new URL('../claude-code/', import.meta.url));
 
 async function launch(t, pluginRoot = root) {
   const config = JSON.parse(await readFile(join(pluginRoot, '.claude-plugin/plugin.json'), 'utf8')).mcpServers['package-scout'];
@@ -62,11 +62,14 @@ test('stdio answers malformed and oversized messages and continues serving', { t
   assert.deepEqual(await server.reply(), { jsonrpc: '2.0', id: 'after-errors', result: {} });
 });
 
-test('the installed source runs from a path with spaces without build output or node_modules', { timeout: 10000 }, async t => {
+test('the distributable runs from a path with spaces without dependencies or an automatic npm install', { timeout: 10000 }, async t => {
   const temp = await mkdtemp(join(tmpdir(), 'scout plugin cache '));
   t.after(() => rm(temp, { recursive: true, force: true }));
   const cached = join(temp, 'package-scout');
-  await cp(root, cached, { recursive: true, filter: path => !['.git', 'node_modules', 'dist', 'build'].includes(basename(path)) });
+  await cp(root, cached, { recursive: true });
+  for (const name of ['node_modules', 'package.json', 'package-lock.json']) {
+    await assert.rejects(access(join(cached, name)), { code: 'ENOENT' });
+  }
   const server = await launch(t, cached);
   for (const protocolVersion of ['2026-07-28', '2025-06-18']) {
     server.send(request(protocolVersion, 'initialize', { protocolVersion }));

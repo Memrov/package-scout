@@ -15,7 +15,7 @@ Scout this task: $ARGUMENTS
 If no arguments were supplied, use the feature being discussed. If the current
 conversation supplies no feature either, ask which job to scout.
 
-Read `${CLAUDE_PLUGIN_ROOT}/plugin/skills/package-discovery/SKILL.md` for the
+Read `${CLAUDE_PLUGIN_ROOT}/skills/scout/references/package-discovery.md` for the
 shared search and evidence workflow. Use the tools bundled with this plugin:
 
 - `mcp__plugin_package-scout_package-scout__search_packages` to find candidates.

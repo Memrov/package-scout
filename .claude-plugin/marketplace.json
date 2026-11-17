@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "package-scout",
-      "source": "./",
+      "source": "./claude-code",
       "description": "Find existing npm packages or built-ins before writing custom code."
     }
   ]

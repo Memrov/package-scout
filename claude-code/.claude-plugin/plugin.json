@@ -1,18 +1,17 @@
 {
   "name": "package-scout",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Don't build it. Scout it. Find the npm package, or the built-in, before writing custom code.",
   "author": { "name": "Memrov", "url": "https://github.com/Memrov" },
   "homepage": "https://github.com/Memrov/package-scout",
   "repository": "https://github.com/Memrov/package-scout",
   "license": "Apache-2.0",
   "keywords": ["npm", "mcp", "package-discovery", "yagni"],
-  "skills": "./claude-code/skills",
   "mcpServers": {
     "package-scout": {
       "type": "stdio",
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp-stdio.mjs"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server.mjs"]
     }
   }
 }

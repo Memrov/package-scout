@@ -4,7 +4,9 @@
 
 **Goal:** Ship Package Scout as a Claude Code plugin with a two-command marketplace install and `/package-scout:scout`.
 
-**Architecture:** Use the repository itself as the plugin root. A small stdio entrypoint calls the existing Worker handler in-process, so search, built-ins, inspection and caching retain one implementation. Node 24.3+ can run the bundled TypeScript source directly; installations need no build or dependency installation.
+**Architecture:** Bundle the small stdio entrypoint and existing Worker handler into `claude-code/server.mjs`, so search, built-ins, inspection and caching retain one implementation. Ship the isolated `claude-code/` plugin directory with no package manifest or lockfile; installations need no build or dependency installation.
+
+**Observed packaging correction:** The initial root-directory release worked, but an actual GitHub install showed Claude Code automatically installing 45 MB of repository development dependencies. Its official loading documentation confirms this cannot be disabled for a root with package.json and a lockfile. The isolated distribution fixes that behavior; `npm test` checks generated-file freshness and runs the real bundled transport.
 
 **Tech Stack:** Node.js 24.3+, native type stripping, Claude Code manifests and skills, Node's test runner.
 
@@ -20,7 +22,7 @@
 
 ## Review Focus
 
-- Startup from a cached path containing spaces with no node_modules or build output.
+- Startup from a cached path containing spaces with no node_modules or development build tools.
 - A client waiting for initialization before it closes stdin.
 - Notifications interleaved with requests, including an unknown notification method.
 - Malformed and oversized input followed by a valid request.
@@ -33,7 +35,7 @@
 
 ### Task 2: Package and test the stdio server
 
-**Files:** `.claude-plugin/plugin.json` (including MCP configuration), `.claude-plugin/marketplace.json`, `scripts/mcp-stdio.mjs`, `scripts/mcp-stdio.test.mjs`, `package.json`.
+**Files:** `claude-code/.claude-plugin/plugin.json` (including MCP configuration), `.claude-plugin/marketplace.json`, `scripts/mcp-stdio.mjs`, `scripts/build-claude-plugin.mjs`, `claude-code/server.mjs`, `scripts/mcp-stdio.test.mjs`, `package.json`.
 
 **Interfaces:** Consume `worker/index.ts`'s default `fetch(Request): Promise<Response>` handler. Expose the same MCP tools over newline-delimited stdin/stdout, using the declared `${CLAUDE_PLUGIN_ROOT}` launcher path.
 

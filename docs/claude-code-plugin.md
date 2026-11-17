@@ -37,9 +37,10 @@ or API access. npm and deps.dev need to be reachable for live evidence.
 - The local MCP server appears in `/mcp` as
   `plugin:package-scout:package-scout`. It exposes `search_packages` and
   `get_package_details`.
-- The repository's source files are the server bundle. Node runs the same
-  Worker handler as the hosted Site, using native TypeScript support. There
-  are no runtime npm dependencies and no listening HTTP port.
+- A self-contained `server.mjs` runs the same Worker handler as the hosted
+  Site. There are no runtime npm dependencies and no listening HTTP port.
+  The installable directory has no `package.json` or lockfile, so Claude Code
+  does not automatically install the repository's development dependencies.
 
 Searches return a compact verdict by default; `detail: "full"` returns the full
 evidence. Prefer a returned platform built-in when its requirements and limits
@@ -47,9 +48,11 @@ fit. The skill inspects a final package's README before recommending it and
 does not install packages or run their code. Search and inspection do not
 execute the separate [evaluation Action](package-evaluation.md).
 
-The Claude Code manifest is [`.claude-plugin/plugin.json`](../.claude-plugin/plugin.json).
-Its MCP configuration lives inside the manifest so simply opening this
-repository does not register an extra project-level MCP server.
+The Claude Code manifest is [`claude-code/.claude-plugin/plugin.json`](../claude-code/.claude-plugin/plugin.json).
+The repository's marketplace points at the isolated `claude-code/` directory.
+Its MCP configuration lives inside the plugin manifest so simply opening this
+repository does not register an extra project-level MCP server. The shared
+guidance is copied into the skill's references by the plugin build.
 
 ## Update or remove
 
@@ -67,7 +70,9 @@ Code manages its cache and server process.
 With Node 24.3+ and the development dependencies installed:
 
 ```sh
-claude --plugin-dir .
+npm run plugin:build
+claude --plugin-dir ./claude-code
+claude plugin validate ./claude-code --strict
 claude plugin validate . --strict
 node --test scripts/mcp-stdio.test.mjs
 npm test
@@ -75,13 +80,17 @@ npm run check
 npm run build && npm run validate
 ```
 
-`--plugin-dir` loads the checkout for that session without a marketplace
+`--plugin-dir` loads the distributable for that session without a marketplace
 install. Keep the manifest's version current when shipping a plugin update.
+Commit the generated `claude-code/server.mjs` and skill reference after source
+changes so a GitHub install needs no build step. `npm test` first checks that
+both generated files match their source; `npm run plugin:check` runs that check
+alone. Build tools are development dependencies of this repository only.
 
 The transport tests start real child processes. They cover startup before EOF,
 notifications, split requests, malformed and oversized input, protocol
-negotiation, and a cached path containing spaces with no build output or
-`node_modules`. Run the standalone transport with
+negotiation, and a cached path containing spaces with no build tools or
+`node_modules`. Run the standalone source transport with
 `node scripts/mcp-stdio.mjs` (or `npm run --silent mcp`); stdout is protocol only.
 
 If `/mcp` reports a startup error, check `node --version` in the shell that
