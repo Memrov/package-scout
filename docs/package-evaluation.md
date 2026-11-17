@@ -75,6 +75,17 @@ Use the correct run ID and attempt when multiple evaluations are in flight. Read
 
 The [CSV example](../evaluations/examples/papaparse.json) starts a temporary HTTP API around Papa Parse and tests quoted commas, blank lines, empty fields, and escaped quotes. The [concurrency example](../evaluations/examples/p-limit.json) tests overlapping tasks, result preservation, rejection propagation, and recovery. The [browser example](../evaluations/examples/papaparse-browser.json) bundles Papa Parse into a customer-import form, interacts with it in Chromium, asserts the displayed records, and captures a screenshot.
 
+Live verification on November 16, 2026:
+
+| Evaluation | Observed result | GitHub run |
+| --- | --- | --- |
+| Papa Parse HTTP API | All three CSV cases matched their expected records. | [Passed](https://github.com/Memrov/package-scout/actions/runs/43984983008) |
+| p-limit concurrency | Eight tasks preserved their results, peaked at three concurrent tasks, propagated rejection, and recovered. | [Passed](https://github.com/Memrov/package-scout/actions/runs/43984987562) |
+| Papa Parse browser form | Chromium displayed the expected records and produced a screenshot. | [Passed](https://github.com/Memrov/package-scout/actions/runs/43984991841) |
+| Intentionally failing assertion | The job failed and retained actual output, the assertion error, and its evidence artifact. | [Expected failure](https://github.com/Memrov/package-scout/actions/runs/43984997133) |
+
+The [saved verification record](evaluation-checks-2026-11-16.json) preserves observed outputs, versions, durations, and image digests. The local suite passed all 39 tests, and the workflow passed actionlint.
+
 ## Reuse the Action in another repository
 
 ```yaml

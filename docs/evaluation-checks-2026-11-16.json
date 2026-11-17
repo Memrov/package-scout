@@ -1,0 +1,207 @@
+{
+  "checked_date": "2026-11-16",
+  "timezone": "America/Los_Angeles",
+  "source_commit": "91f661d2f24a29f9d7c066df91cdedb2d7057356",
+  "local_tests": {
+    "passed": 39,
+    "failed": 0
+  },
+  "workflow_lint": "passed",
+  "runs": [
+    {
+      "case": "csv-api",
+      "execution_status": "succeeded",
+      "package": {
+        "name": "papaparse",
+        "version": "5.7.1"
+      },
+      "duration_ms": 16343,
+      "run_url": "https://github.com/Memrov/package-scout/actions/runs/43984983008",
+      "image_digests": [
+        "node@sha256:9d266751ca3d7fdbe651c878ffd5ad0a42fed49a18c283509267c97f025b7496"
+      ],
+      "observations": {
+        "cases_run": 3,
+        "observations": [
+          {
+            "name": "headers and quoted commas",
+            "input": "name,email\n\"Scott, Darian\",darian@example.test\n",
+            "expected": [
+              {
+                "name": "Scott, Darian",
+                "email": "darian@example.test"
+              }
+            ],
+            "actual": [
+              {
+                "name": "Scott, Darian",
+                "email": "darian@example.test"
+              }
+            ],
+            "errors": [],
+            "status": 200
+          },
+          {
+            "name": "empty fields and blank lines",
+            "input": "name,email\nAda,\n\nLin,lin@example.test\n",
+            "expected": [
+              {
+                "name": "Ada",
+                "email": ""
+              },
+              {
+                "name": "Lin",
+                "email": "lin@example.test"
+              }
+            ],
+            "actual": [
+              {
+                "name": "Ada",
+                "email": ""
+              },
+              {
+                "name": "Lin",
+                "email": "lin@example.test"
+              }
+            ],
+            "errors": [],
+            "status": 200
+          },
+          {
+            "name": "escaped quotes",
+            "input": "name,email\n\"The \"\"Quoted\"\" Name\",a@example.test\n",
+            "expected": [
+              {
+                "name": "The \"Quoted\" Name",
+                "email": "a@example.test"
+              }
+            ],
+            "actual": [
+              {
+                "name": "The \"Quoted\" Name",
+                "email": "a@example.test"
+              }
+            ],
+            "errors": [],
+            "status": 200
+          }
+        ]
+      }
+    },
+    {
+      "case": "concurrency",
+      "execution_status": "succeeded",
+      "package": {
+        "name": "p-limit",
+        "version": "7.3.3"
+      },
+      "duration_ms": 15581,
+      "run_url": "https://github.com/Memrov/package-scout/actions/runs/43984987562",
+      "image_digests": [
+        "node@sha256:9d266751ca3d7fdbe651c878ffd5ad0a42fed49a18c283509267c97f025b7496"
+      ],
+      "observations": {
+        "overlap": {
+          "concurrency": 3,
+          "peak": 3,
+          "active_after": 0,
+          "input": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "actual": [
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16
+          ],
+          "expected": [
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16
+          ]
+        },
+        "rejection_propagated": true,
+        "recovery": "still works"
+      }
+    },
+    {
+      "case": "browser",
+      "execution_status": "succeeded",
+      "package": {
+        "name": "papaparse",
+        "version": "5.7.1"
+      },
+      "duration_ms": 29960,
+      "run_url": "https://github.com/Memrov/package-scout/actions/runs/43984991841",
+      "image_digests": [
+        "mcr.microsoft.com/playwright@sha256:f1e7e01021efd65dd1a2c56064be399f3e4de00fd021ac561325f2bfbb2b837a"
+      ],
+      "observations": {
+        "browser_version": "141.0.7390.37",
+        "input": "name,email\n\"Scott, Darian\",darian@example.test\nAda,ada@example.test\n",
+        "expected": [
+          {
+            "name": "Scott, Darian",
+            "email": "darian@example.test"
+          },
+          {
+            "name": "Ada",
+            "email": "ada@example.test"
+          }
+        ],
+        "actual": [
+          {
+            "name": "Scott, Darian",
+            "email": "darian@example.test"
+          },
+          {
+            "name": "Ada",
+            "email": "ada@example.test"
+          }
+        ]
+      }
+    },
+    {
+      "case": "intentional-failure",
+      "execution_status": "failed",
+      "package": {
+        "name": "papaparse",
+        "version": "5.7.1"
+      },
+      "duration_ms": 20033,
+      "run_url": "https://github.com/Memrov/package-scout/actions/runs/43984997133",
+      "image_digests": [
+        "node@sha256:9d266751ca3d7fdbe651c878ffd5ad0a42fed49a18c283509267c97f025b7496"
+      ],
+      "observations": {
+        "purpose": "intentional failure",
+        "actual": [
+          {
+            "name": "Ada"
+          }
+        ],
+        "expectedRows": 2
+      }
+    }
+  ],
+  "notes": [
+    "The failure case intentionally asserted two rows for a one-row CSV input. Its failing job and retained artifact were the expected outcome.",
+    "Execution evidence covers these fixtures only. It is not a general package certification."
+  ]
+}
