@@ -96,7 +96,7 @@ jobs:
             --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
             --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA" \
             --bundle build/release/package-scout.intoto.jsonl
-      - name: Publish the immutable release assets
+      - name: Publish the verified release assets
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
