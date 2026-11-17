@@ -1,0 +1,12 @@
+{
+  "name": "package-scout",
+  "owner": { "name": "Memrov", "url": "https://github.com/Memrov" },
+  "description": "Package Scout's Claude Code plugin: find it, check it, prove it.",
+  "plugins": [
+    {
+      "name": "package-scout",
+      "source": "./",
+      "description": "Find existing npm packages or built-ins before writing custom code."
+    }
+  ]
+}

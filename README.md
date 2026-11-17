@@ -39,6 +39,28 @@ Scout is lazy, with standards:
 
 ## Try it in a minute
 
+### Claude Code: install the plugin
+
+With Node 24.3+ on your `PATH`, run these two commands inside Claude Code:
+
+```text
+/plugin marketplace add Memrov/package-scout
+/plugin install package-scout@package-scout
+```
+
+Run `/reload-plugins` or start a new session, then ask:
+
+```text
+/package-scout:scout parse a CSV upload in the browser
+```
+
+The server is bundled and starts automatically. No API key, hosted login,
+`npm install`, or separate server is needed. Claude Code itself uses your normal
+Claude account. See [the plugin guide](docs/claude-code-plugin.md) for updates,
+troubleshooting and development.
+
+### ChatGPT, Codex, or another MCP client
+
 The maintained [hosted copy](https://package-scout-npm-20261116.dscott2017.chatgpt.site) uses Sites sign-in and is currently restricted to accounts granted access. In ChatGPT or Codex, use the existing Package Scout plugin. To run your own copy without hosted access, follow the setup below.
 
 Run it. You need Node 24.3 or newer.
@@ -225,7 +247,7 @@ Trust the facts, then check. When Scout is unsure, the verdict says so. For anyt
 Then you get to write code. Scout is sorry for your loss.
 
 **Which agents does it work with?**
-Anything that speaks MCP over HTTP. It is checked against Claude Code and the official MCP SDK client. ChatGPT uses it through the plugin skill in [plugin/skills](plugin/skills/package-discovery/SKILL.md).
+Claude Code can install the [bundled plugin](docs/claude-code-plugin.md), which uses MCP over stdio. Other clients can connect over HTTP. Both transports are checked against the official MCP SDK client. ChatGPT uses it through the plugin skill in [plugin/skills](plugin/skills/package-discovery/SKILL.md).
 
 ## Works well with ponytail
 
