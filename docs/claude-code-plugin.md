@@ -107,6 +107,12 @@ The plugin follows the official [creation guide](https://code.claude.com/docs/en
 
 The [2026-11-17 verification record](claude-code-plugin-verification-2026-11-17.json)
 preserves the tested source commit, installed versions and live SDK results.
-Claude Code's native connection check passed. Conversational skill invocation
-was not tested because no Claude model account was signed in in the test
-environment; macOS and Windows were not exercised.
+Claude Code's native connection check passed. No Claude model account was
+signed in there, so conversational use was not tested.
+
+The [session verification record](claude-code-plugin-session-verification-2026-11-17.json)
+covers signed-in, headless Claude Code sessions on Node 22 and 24. In those
+sessions, `/package-scout:scout` and a plain-language request that loaded the
+skill on its own both called the bundled tools and returned sourced answers.
+It also records the Node 22 startup failure that plugin 1.0.4 fixes. Interactive
+sessions, macOS, Windows and earlier Node 22 releases were not exercised.
