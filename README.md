@@ -1,6 +1,6 @@
 # Package Scout
 
-A private ChatGPT plugin and a small hosted MCP for finding existing npm packages before writing custom code. The backend uses npm and **deps.dev v3alpha**, with deterministic filters and scoring. It makes no model calls and requires no upstream API keys.
+A private ChatGPT plugin and a small hosted MCP for finding existing npm packages before writing custom code. The backend uses npm and **deps.dev v3alpha**, with deterministic filters and profile-specific ranking. It makes no model calls and requires no upstream API keys.
 
 ## Tools
 
@@ -8,7 +8,7 @@ A private ChatGPT plugin and a small hosted MCP for finding existing npm package
 
 - `keywords`: short search keywords, combined length 2–64 characters.
 - `runtime`: `any`, `browser`, or `node`. Specific runtimes require an explicit declaration in the package's current registry metadata.
-- `quality_profile`: `balanced` (default), `established`, or `explore`.
+- `quality_profile`: `vibe`, `production` (default), or `internal`. Legacy `balanced`, `established`, and `explore` requests remain supported.
 - `licenses_any`, `min_weekly_downloads`, `match_all_keywords`, `package_type`, and explicit deprecated/prerelease overrides.
 
 `get_package_details` inspects `name` and `version` (`latest` or an exact version). Optional `include_readme` and `include_dependency_summary` retrieve additional evidence for a final shortlist. Source URLs and evidence dates are returned.
@@ -19,7 +19,7 @@ Example tool arguments:
 {
   "keywords": ["transcription"],
   "runtime": "browser",
-  "quality_profile": "balanced",
+  "quality_profile": "vibe",
   "limit": 3
 }
 ```
@@ -34,21 +34,25 @@ This workflow is separate from the hosted MCP's search and inspection tools. It 
 
 ## Filtering and scoring
 
-Balanced discovery requires at least 100 weekly downloads, an identified license, and deps.dev version evidence. Established raises the download floor to 10,000. Explore removes the adoption and evidence floors. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested.
+Vibe, production, and internal share the same default filters: at least 100 weekly downloads, an identified license, and deps.dev version evidence. The download floor can be overridden explicitly. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested. Legacy balanced uses production ordering; established uses production ordering with a 10,000-download floor; explore uses vibe ordering without adoption, identified-license, or version-evidence floors.
 
 Registry names, descriptions and keyword lists must overlap the query. A caller may require all keywords. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
 
-The 100-point formula is in `src/quality.ts`:
+Ranking version 2 is implemented in `src/quality.ts`. It compares evidence in the following order, using each later criterion only to break a tie:
 
-| Signal | Maximum points | Calculation |
-| --- | ---: | --- |
-| Query relevance | 35 | 25 × matched-keyword fraction, plus up to 10 for candidate position. |
-| Adoption | 20 | Logarithmic weekly downloads, capped at one million. |
-| Advisory and Scorecard evidence | 20 | 10 for an observed empty direct-advisory list; up to 10 for a dated Scorecard. Scorecard weight halves after 180 days and falls to one quarter after a year. |
-| Dependency footprint | 15 | `15 / (1 + log2(direct dependency count + 1))`. Missing data receives no points. |
-| Release recency | 10 | 10 within 90 days, 8 within a year, 5 within three years, otherwise 2. Missing dates receive no points. |
+| Profile | Priorities after keyword-match fraction |
+| --- | --- |
+| `vibe` | Fewer declared runtime dependencies, fewer declared install hooks, upstream OpenSSF score, upstream Maintained check, weekly downloads. |
+| `production` | Upstream OpenSSF score, upstream Maintained check, weekly downloads, fewer declared runtime dependencies, fewer declared install hooks. |
+| `internal` | Fewer declared install hooks, fewer declared runtime dependencies, upstream OpenSSF score, upstream Maintained check, weekly downloads. |
 
-Scores are metadata heuristics, not correctness probabilities. Old stable packages remain eligible. Unknown metrics stay unknown. Runtime declarations can come from manifest fields, keywords or explicit descriptions and are returned with their source; they do not establish tested compatibility. Direct advisories exclude dependency advisories.
+Observed values sort before unknown values for each criterion. Remaining ties preserve discovery order, then package name. This is an evidence-coverage preference, not an assertion that unmeasured packages are poor quality. The priorities are product policies, not empirically calibrated weights.
+
+OpenSSF scores, checks, dates, and source references retain their upstream values. When several associated source repositories have scores, ranking uses the lowest observed score and reports coverage. Scores are not discounted with age; age is reported separately. See [OpenSSF's scoring methodology](https://github.com/ossf/scorecard#aggregate-score). The LFX Health Score is not computed because maintainer and contributor data needed for that model is unavailable in the current pipeline.
+
+The former 100-point composite is retired: `quality.score` is now `null`, and callers should read `quality.signals`, `quality.priorities`, `quality.scorecard`, and `scoring.version`. Missing signals remain `null`. `integration_effort` and `functional_evaluation` are explicitly not assessed; GitHub evaluation reports remain separate evidence. Dependency counts and declared install hooks are footprint facts, not an integration-effort score, proof of local processing, or a count of required external services. Unlisted implicit native builds are not detected by the hook count.
+
+Old stable packages remain eligible; release age is context and does not affect ordering. Runtime declarations can come from manifest fields, keywords or explicit descriptions and are returned with their source; they do not establish tested compatibility. Direct advisories exclude dependency advisories.
 
 ## Sources, cache and costs
 

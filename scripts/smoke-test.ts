@@ -20,7 +20,7 @@ for (const args of [{ keywords: ['csv'], runtime: 'browser' }, { keywords: ['tra
   const result = await call('search_packages', args);
   results.push(result);
   const data = object(result.data);
-  console.log(JSON.stringify({ args, returned: data.returned, packages: (data.packages as Json[]).map(p => ({ name: p.name, version: p.version, score: object(p.quality).score, weekly_downloads: p.weekly_downloads })), filtered_counts: data.filtered_counts, duration_ms: result.duration_ms, meta: data.meta, warnings: data.warnings }));
+  console.log(JSON.stringify({ args, returned: data.returned, packages: (data.packages as Json[]).map(p => ({ name: p.name, version: p.version, profile: object(p.quality).profile, signals: object(p.quality).signals, weekly_downloads: p.weekly_downloads })), filtered_counts: data.filtered_counts, duration_ms: result.duration_ms, meta: data.meta, warnings: data.warnings }));
 }
 const cached = await call('search_packages', { keywords: ['csv'], runtime: 'browser' });
 assert.equal(object(object(cached.data).meta).cache_hit, true);

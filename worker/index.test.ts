@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHandler as makeHandler } from './index.ts';
 import { argumentsFor } from '../src/discovery.ts';
-import { exclusionReasons, qualityScore } from '../src/quality.ts';
+import { compareCandidates, exclusionReasons, qualityEvidence, type RankingProfile } from '../src/quality.ts';
 import { object, type Json } from '../src/package-sources.ts';
 
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json };
+type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number };
+const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
 function upstream(packages: Package[], listed?: string[]) {
   const calls: string[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {
@@ -22,7 +23,7 @@ function upstream(packages: Package[], listed?: string[]) {
       const parts = url.pathname.split('/').map(decodeURIComponent);
       const p = packages.find(p => p.name === parts[1]);
       if (!p) return new Response('', { status: 404 });
-      return parts.length === 2 ? response({ name: p.name, readme: '# Usage\nInstall this package.' }) : response({ name: p.name, version: '1.0.0', description: p.description ?? 'CSV cache concurrency limit package for the browser', license: p.license ?? null, dependencies: p.dependencies,
+      return parts.length === 2 ? response({ name: p.name, readme: '# Usage\nInstall this package.' }) : response({ name: p.name, version: '1.0.0', description: p.description ?? 'CSV cache concurrency limit package for the browser', license: p.license ?? null, dependencies: p.dependencies, scripts: p.scripts,
         ...(p.deprecated ? { deprecated: 'Use a maintained replacement.' } : {}) });
     }
     if (url.pathname.endsWith(':dependencies')) {
@@ -33,9 +34,12 @@ function upstream(packages: Package[], listed?: string[]) {
     if (url.pathname === '/v3alpha/versionbatch') return response({ responses: body.requests.map((request: Json) => {
       const key = object(request.versionKey); const p = packages.find(p => p.name === key.name)!;
       return { request, ...(p.missing ? {} : { version: { versionKey: key, licenses: p.license === null ? [] : [p.license ?? 'MIT'], advisoryKeys: p.vulnerable ? [{ id: 'GHSA-example' }] : [], publishedAt: '2026-10-01T00:00:00Z', isDeprecated: !!p.deprecated,
-        relatedProjects: [{ projectKey: { id: p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}` }, relationType: 'SOURCE_REPO', relationProvenance: 'UNVERIFIED_METADATA' }] } }) };
+        relatedProjects: [{ projectKey: { id: repositoryId(p) }, relationType: 'SOURCE_REPO', relationProvenance: 'UNVERIFIED_METADATA' }] } }) };
     }).reverse() });
-    if (url.pathname === '/v3alpha/projectbatch') return response({ responses: body.requests.map((request: Json) => ({ request, project: { projectKey: request.projectKey, starsCount: 100, scorecard: { overallScore: 7, date: '2026-10-01T00:00:00Z' } } })) });
+    if (url.pathname === '/v3alpha/projectbatch') return response({ responses: body.requests.map((request: Json) => {
+      const p = packages.find(item => repositoryId(item) === object(request.projectKey).id)!;
+      return { request, project: { projectKey: request.projectKey, starsCount: 100, scorecard: p.cardScore === null ? null : { overallScore: p.cardScore ?? 7, date: p.cardDate ?? '2026-10-01T00:00:00Z', checks: [{ name: 'Maintained', score: p.maintainedScore ?? 8, reason: 'Observed provider check' }] } } };
+    }) });
     throw new Error('Unexpected upstream URL');
   };
   return { fetchImpl, calls };
@@ -63,7 +67,7 @@ test('MCP discovery, tool schemas, health, and the page require no upstream requ
   assert.equal(mock.calls.length, 0);
 });
 
-test('balanced search filters junk, explains scores, and deduplicates source repositories', async () => {
+test('default production search applies shared filters, explains evidence, and deduplicates source repositories', async () => {
   const mock = upstream([
     { name: 'deprecated', downloads: 100000, deprecated: true }, { name: 'obscure', downloads: 3 },
     { name: 'vulnerable', downloads: 100000, vulnerable: true }, { name: 'unlicensed', downloads: 1000, license: null },
@@ -76,7 +80,9 @@ test('balanced search filters junk, explains scores, and deduplicates source rep
   assert.deepEqual(packages.map(p => p.name), ['good', 'alternative']);
   assert.deepEqual(result.filtered_counts, { deprecated: 1, below_download_floor: 1, known_direct_advisories: 1, unidentified_license: 1, same_repository: 1 });
   assert.equal(mock.calls.some(url => url.endsWith('/obscure/latest')), false);
-  assert.ok(Number(object(packages[0].quality).score) > Number(object(packages[1].quality).score));
+  assert.equal(object(packages[0].quality).score, null);
+  assert.equal(object(packages[0].quality).profile, 'production');
+  assert.equal(object(object(packages[0].quality).signals).direct_runtime_dependency_count, 0);
   assert.equal(packages[0].runtime_compatibility, 'not_verified');
 });
 
@@ -155,20 +161,92 @@ test('old stable packages remain eligible and unknown metrics never receive full
   const candidate = { name: 'stable', version: '1.0.0', deprecated: null, licenses: ['MIT'], deps_dev_status: 'found', weekly_downloads: 1000, published_at: '2018-01-01T00:00:00Z', known_direct_advisories: [], direct_runtime_dependency_count: null, repositories: [] };
   const args = argumentsFor('search_packages', { keywords: ['cache'] });
   assert.deepEqual(exclusionReasons(candidate, args), []);
-  const score = qualityScore(candidate, 0, 1, '2026-11-16T00:00:00Z');
-  assert.equal(object(score.components).release_recency, 2);
-  assert.equal(object(score.components).dependency_footprint, 0);
-  assert.ok(Number(score.score) >= 0 && Number(score.score) <= 100);
+  const evidence = qualityEvidence(candidate, 0, 'production', '2026-11-16T00:00:00Z');
+  assert.equal(object(evidence.signals).direct_runtime_dependency_count, null);
+  assert.equal(evidence.score, null);
+  assert.equal(object(evidence.maintenance).health_score, null);
+  assert.ok(Number(object(evidence.maintenance).release_age_days) > 1000);
 });
 
-test('quality scores reward a smaller integration surface and discount stale Scorecards', () => {
+test('OpenSSF scores and Maintained checks keep their original values and dates', () => {
   const base = { weekly_downloads: 10000, known_direct_advisories: [], published_at: '2026-10-01T00:00:00Z', repositories: [] };
-  const small = qualityScore({ ...base, direct_runtime_dependency_count: 0 }, 0, 1, '2026-11-16T00:00:00Z');
-  const large = qualityScore({ ...base, direct_runtime_dependency_count: 100 }, 0, 1, '2026-11-16T00:00:00Z');
-  assert.ok(Number(small.score) > Number(large.score));
-  const fresh = qualityScore({ ...base, repositories: [{ scorecard: { score: 10, assessed_at: '2026-11-01T00:00:00Z' } }] }, 0, 1, '2026-11-16T00:00:00Z');
-  const stale = qualityScore({ ...base, repositories: [{ scorecard: { score: 10, assessed_at: '2020-01-01T00:00:00Z' } }] }, 0, 1, '2026-11-16T00:00:00Z');
-  assert.ok(Number(fresh.score) > Number(stale.score));
+  const card = { score: 9.3, assessed_at: '2020-01-01T00:00:00Z', checks: [{ name: 'Maintained', score: 5 }, { name: 'Code-Review', score: -1 }] };
+  const candidate = { ...base, repositories: [{ id: 'github.com/example/source', scorecard: card }] };
+  const before = structuredClone(candidate);
+  const evidence = qualityEvidence(candidate, 0, 'production', '2026-11-16T00:00:00Z');
+  assert.equal(object(evidence.signals).scorecard_score, 9.3);
+  assert.equal(object(evidence.signals).maintained_check_score, 5);
+  assert.equal(object(evidence.scorecard).assessed_at, card.assessed_at);
+  assert.ok(Number(object(evidence.scorecard).age_days) > 1000);
+  assert.equal(object(evidence.integration_effort).score, null);
+  assert.equal(object(evidence.integration_effort).status, 'not_assessed');
+  assert.deepEqual(candidate, before);
+});
+
+test('three profiles produce different priorities while cache entries remain isolated', async () => {
+  const mock = upstream([
+    { name: 'tiny-hooks', downloads: 5000, dependencies: {}, scripts: { install: 'node install.mjs' }, cardScore: 7 },
+    { name: 'zero-hooks', downloads: 5000, dependencies: { a: '1', b: '1', c: '1' }, scripts: {}, cardScore: 8 },
+    { name: 'strong-practices', downloads: 5000, dependencies: { a: '1', b: '1' }, scripts: { postinstall: 'node setup.mjs' }, cardScore: 10 },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const results = new Map<string, Json>();
+  for (const profile of ['vibe', 'production', 'internal']) {
+    const result = await call(handler, 'search_packages', { keywords: ['csv'], quality_profile: profile });
+    assert.equal(object(result.meta).cache_hit, false);
+    assert.ok((result.packages as Json[]).every(p => object(p.quality).profile === profile));
+    results.set(profile, result);
+  }
+  const names = (profile: string) => (results.get(profile)!.packages as Json[]).map(p => p.name);
+  assert.deepEqual(names('vibe'), ['tiny-hooks', 'strong-practices', 'zero-hooks']);
+  assert.deepEqual(names('production'), ['strong-practices', 'zero-hooks', 'tiny-hooks']);
+  assert.deepEqual(names('internal'), ['zero-hooks', 'tiny-hooks', 'strong-practices']);
+  const count = mock.calls.length;
+  const repeat = await call(handler, 'search_packages', { keywords: ['csv'], quality_profile: 'vibe' });
+  assert.equal(mock.calls.length, count);
+  assert.equal(object(repeat.meta).cache_hit, true);
+  assert.deepEqual((repeat.packages as Json[]).map(p => p.name), names('vibe'));
+});
+
+test('vibe, production and internal share the same eligibility rules', () => {
+  const candidate = { version: '1.0.0', deprecated: null, licenses: ['MIT'], deps_dev_status: 'found', weekly_downloads: 1000, known_direct_advisories: [{ id: 'GHSA-example' }] };
+  for (const quality_profile of ['vibe', 'production', 'internal']) {
+    assert.deepEqual(exclusionReasons(candidate, argumentsFor('search_packages', { keywords: ['csv'], quality_profile })), ['known_direct_advisories']);
+    assert.deepEqual(exclusionReasons({ ...candidate, known_direct_advisories: [], licenses: null }, argumentsFor('search_packages', { keywords: ['csv'], quality_profile })), ['unidentified_license']);
+  }
+});
+
+test('unknown metrics remain null and a valid zero is still observed evidence', () => {
+  const unknown = qualityEvidence({ keyword_match_fraction: 1, repositories: [{ scorecard: { score: -1, checks: [{ name: 'Maintained', score: -1 }] } }] }, 0, 'production', '2026-11-16T00:00:00Z');
+  assert.equal(object(unknown.signals).scorecard_score, null);
+  assert.equal(object(unknown.signals).maintained_check_score, null);
+  assert.equal(object(unknown.signals).declared_install_hook_count, null);
+  const observed = qualityEvidence({ keyword_match_fraction: 1, repositories: [{ scorecard: { score: 0 } }], direct_runtime_dependency_count: 0, declared_install_hooks: [] }, 1, 'production', '2026-11-16T00:00:00Z');
+  assert.equal(object(observed.signals).direct_runtime_dependency_count, 0);
+  assert.equal(object(observed.signals).declared_install_hook_count, 0);
+  assert.ok(compareCandidates({ quality: observed }, { quality: unknown }) < 0);
+});
+
+test('multiple source repositories cannot cherry-pick the highest Scorecard', () => {
+  const evidence = qualityEvidence({ repositories: [{ id: 'github.com/example/one', scorecard: { score: 9 } }, { id: 'github.com/example/two', scorecard: { score: 4 } }] }, 0, 'production', '2026-11-16T00:00:00Z');
+  assert.equal(object(evidence.signals).scorecard_score, 4);
+  assert.equal(object(evidence.scorecard).source_repository, 'github.com/example/two');
+  assert.deepEqual(evidence.scorecard_coverage, { associated_repositories: 2, scored_repositories: 2 });
+});
+
+test('keyword relevance precedes profile preferences and release age does not reorder otherwise equal candidates', () => {
+  for (const profile of ['vibe', 'production', 'internal'] as RankingProfile[]) {
+    const make = (name: string, matches: number, position: number, date: string) => ({ name, quality: qualityEvidence({ keyword_match_fraction: matches, direct_runtime_dependency_count: 0, published_at: date }, position, profile, '2026-11-16T00:00:00Z') });
+    assert.ok(compareCandidates(make('exact', 1, 1, '2010-01-01'), make('partial', 0.5, 0, '2026-11-01')) < 0);
+    assert.ok(compareCandidates(make('stable', 1, 0, '2010-01-01'), make('recent', 1, 1, '2026-11-01')) < 0);
+  }
+});
+
+test('legacy discovery modes remain valid and production is the new default', () => {
+  assert.equal(argumentsFor('search_packages', { keywords: ['csv'] }).quality_profile, 'production');
+  assert.equal(argumentsFor('search_packages', { keywords: ['csv'], quality_profile: 'established' }).min_weekly_downloads, 10000);
+  assert.equal(argumentsFor('search_packages', { keywords: ['csv'], quality_profile: 'explore' }).min_weekly_downloads, 0);
+  assert.throws(() => argumentsFor('search_packages', { keywords: ['csv'], quality_profile: 'invalid' }));
 });
 
 test('keyword, runtime and package-type filters reject unrelated popular results', async () => {

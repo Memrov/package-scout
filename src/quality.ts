@@ -1,14 +1,42 @@
 import { object, type Json } from './package-sources.ts';
 
-export const SCORING = {
-  version: '1.0.0', scale: 100,
-  weights: { query_relevance: 35, adoption: 20, advisory_and_scorecard_signals: 20, dependency_footprint: 15, release_recency: 10 },
-  meaning: 'A transparent metadata ranking heuristic, not a probability of correctness or proof of feature fit.',
-};
+export const RANKING_PROFILES = {
+  vibe: {
+    goal: 'Quick start, using observed package footprint as a proxy; integration effort is not measured.',
+    priorities: ['keyword_match_fraction', 'direct_runtime_dependency_count', 'declared_install_hook_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+  },
+  production: {
+    goal: 'Prefer observed security practices and maintenance evidence after compatibility and risk filters.',
+    priorities: ['keyword_match_fraction', 'scorecard_score', 'maintained_check_score', 'weekly_downloads', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
+  },
+  internal: {
+    goal: 'Prefer a smaller observed installation footprint; external services and operating costs are not assessed.',
+    priorities: ['keyword_match_fraction', 'declared_install_hook_count', 'direct_runtime_dependency_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+  },
+} as const;
+export type RankingProfile = keyof typeof RANKING_PROFILES;
+
+const BASE_FILTERS = { min_weekly_downloads: 100, require_version_evidence: true, require_identified_license: true };
 export const PROFILES = {
-  balanced: { min_weekly_downloads: 100, require_version_evidence: true, require_identified_license: true },
-  established: { min_weekly_downloads: 10000, require_version_evidence: true, require_identified_license: true },
-  explore: { min_weekly_downloads: 0, require_version_evidence: false, require_identified_license: false },
+  vibe: { ...BASE_FILTERS, ranking: 'vibe' },
+  production: { ...BASE_FILTERS, ranking: 'production' },
+  internal: { ...BASE_FILTERS, ranking: 'internal' },
+  // Keep existing client requests valid. These legacy names describe discovery
+  // thresholds; they no longer select the retired weighted composite score.
+  balanced: { ...BASE_FILTERS, ranking: 'production' },
+  established: { ...BASE_FILTERS, min_weekly_downloads: 10000, ranking: 'production' },
+  explore: { min_weekly_downloads: 0, require_version_evidence: false, require_identified_license: false, ranking: 'vibe' },
+} as const;
+
+export const SCORING = {
+  version: '2.0.0', method: 'ordered_evidence', aggregate_score: null,
+  meaning: 'Profile-specific lexicographic ordering of observed evidence. No invented composite quality or integration-effort score.',
+  profiles: RANKING_PROFILES,
+  smaller_is_preferred: ['direct_runtime_dependency_count', 'declared_install_hook_count'],
+  missing_data: 'Unknown values remain null. For each priority, observed evidence sorts before unknown evidence; this is a coverage preference, not a poor-quality score.',
+  tie_breaker: 'Original discovery position, then package name.',
+  scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
+  limits: ['Profile priorities are product policies, not empirically calibrated weights.', 'Dependency counts and declared install hooks are footprint facts, not measured integration effort.', 'Release dates alone do not establish maintenance health; LFX Health Score is not computed.', 'Scorecard describes repository security practices, not package correctness or feature fit.'],
 };
 
 export function exclusionReasons(candidate: Json, args: Json): string[] {
@@ -27,30 +55,63 @@ export function exclusionReasons(candidate: Json, args: Json): string[] {
   return reasons;
 }
 
-export function qualityScore(candidate: Json, position: number, poolSize: number, now: string): Json {
-  const downloads = typeof candidate.weekly_downloads === 'number' ? candidate.weekly_downloads : null;
-  const count = typeof candidate.direct_runtime_dependency_count === 'number' ? candidate.direct_runtime_dependency_count : null;
-  const advisories = Array.isArray(candidate.known_direct_advisories) ? candidate.known_direct_advisories : null;
-  const published = typeof candidate.published_at === 'string' ? Date.parse(candidate.published_at) : NaN;
-  const ageDays = Number.isFinite(published) ? Math.max(0, (Date.parse(now) - published) / 86400000) : null;
-  const cards = Array.isArray(candidate.repositories) ? candidate.repositories.map(object).flatMap(p => p.scorecard ? [object(p.scorecard)] : []) : [];
-  const scorecards = cards.map(card => {
-    if (typeof card.score !== 'number' || card.score < 0 || card.score > 10 || typeof card.assessed_at !== 'string') return 0;
-    const date = Date.parse(card.assessed_at);
-    if (!Number.isFinite(date)) return 0;
-    const age = Math.max(0, (Date.parse(now) - date) / 86400000);
-    return card.score * (age <= 180 ? 1 : age <= 365 ? 0.5 : 0.25);
-  });
-  const round = (value: number) => Math.round(value * 10) / 10;
-  const components = {
-    query_relevance: round(25 * (typeof candidate.keyword_match_fraction === 'number' ? candidate.keyword_match_fraction : 0) + 10 * (1 - 0.7 * position / Math.max(1, poolSize - 1))),
-    adoption: downloads === null ? 0 : round(20 * Math.min(1, Math.log10(Math.max(0, downloads) + 1) / 6)),
-    advisory_and_scorecard_signals: round((advisories && !advisories.length ? 10 : 0) + Math.max(0, ...scorecards)),
-    dependency_footprint: count === null ? 0 : round(15 / (1 + Math.log2(count + 1))),
-    release_recency: ageDays === null ? 0 : ageDays <= 90 ? 10 : ageDays <= 365 ? 8 : ageDays <= 1095 ? 5 : 2,
+function observedNumber(value: unknown, maximum = Infinity): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum ? value : null;
+}
+
+export function qualityEvidence(candidate: Json, position: number, profile: RankingProfile, now: string): Json {
+  const repositories = Array.isArray(candidate.repositories) ? candidate.repositories.map(object) : [];
+  const cards = repositories.flatMap<Json & { score: number; source_repository: unknown }>(repository => {
+    if (!repository.scorecard) return [];
+    const card = object(repository.scorecard);
+    const score = observedNumber(card.score, 10);
+    return score === null ? [] : [{ ...card, score, source_repository: repository.id ?? null }];
+  }).sort((a, b) => a.score - b.score || String(a.source_repository).localeCompare(String(b.source_repository)));
+  const selected = cards[0] ?? null;
+  const maintained = cards.flatMap(card => Array.isArray(card.checks) ? card.checks.map(object).filter(check => check.name === 'Maintained').flatMap(check => {
+    const score = observedNumber(check.score, 10);
+    return score === null ? [] : [{ score, source_repository: card.source_repository, assessed_at: card.assessed_at ?? null }];
+  }) : []).sort((a, b) => a.score - b.score || String(a.source_repository).localeCompare(String(b.source_repository)))[0] ?? null;
+  const dateAge = (value: unknown) => {
+    const date = typeof value === 'string' ? Date.parse(value) : NaN;
+    return Number.isFinite(date) && date <= Date.parse(now) ? Math.floor((Date.parse(now) - date) / 86400000) : null;
   };
-  return { score: round(Object.values(components).reduce((sum, value) => sum + value, 0)), components,
-    unknown_signals: [downloads === null ? 'weekly_downloads' : null, count === null ? 'dependency_footprint' : null, advisories === null ? 'direct_advisories' : null, ageDays === null ? 'release_date' : null, !cards.length ? 'scorecard' : null].filter(Boolean),
-    release_age_days: ageDays === null ? null : Math.floor(ageDays),
+  const signals = {
+    keyword_match_fraction: observedNumber(candidate.keyword_match_fraction, 1),
+    direct_runtime_dependency_count: observedNumber(candidate.direct_runtime_dependency_count),
+    declared_install_hook_count: Array.isArray(candidate.declared_install_hooks) ? candidate.declared_install_hooks.length : null,
+    scorecard_score: selected?.score ?? null,
+    maintained_check_score: maintained?.score ?? null,
+    weekly_downloads: observedNumber(candidate.weekly_downloads),
   };
+  return {
+    score: null, profile, method: SCORING.method, priorities: RANKING_PROFILES[profile].priorities, signals,
+    discovery_position: position,
+    scorecard: selected ? { ...selected, age_days: dateAge(selected.assessed_at) } : null,
+    scorecard_coverage: { associated_repositories: repositories.length, scored_repositories: cards.length },
+    maintenance: { maintained_check: maintained, health_score: null, status: maintained ? 'scorecard_check_available' : 'not_assessed', latest_release_at: candidate.published_at ?? null, release_age_days: dateAge(candidate.published_at) },
+    integration_effort: { score: null, status: 'not_assessed', reason: 'No integration-effort scoring provider is configured. Footprint signals do not measure integration effort.' },
+    functional_evaluation: { status: 'not_assessed', reason: 'GitHub evaluation artifacts are separate evidence and are not automatically attached to this search.' },
+    unknown_signals: [...Object.entries(signals).filter(([, value]) => value === null).map(([key]) => key),
+      ...(Array.isArray(candidate.known_direct_advisories) ? [] : ['direct_advisories']),
+      ...(selected && dateAge(selected.assessed_at) === null ? ['scorecard_date'] : []),
+      ...(dateAge(candidate.published_at) === null ? ['release_date'] : []),
+      'integration_effort', 'functional_evaluation'],
+  };
+}
+
+export function compareCandidates(a: Json, b: Json): number {
+  const left = object(a.quality);
+  const right = object(b.quality);
+  const leftSignals = object(left.signals);
+  const rightSignals = object(right.signals);
+  for (const key of left.priorities as string[]) {
+    const l = leftSignals[key];
+    const r = rightSignals[key];
+    const leftKnown = typeof l === 'number';
+    const rightKnown = typeof r === 'number';
+    if (leftKnown !== rightKnown) return leftKnown ? -1 : 1;
+    if (leftKnown && rightKnown && l !== r) return SCORING.smaller_is_preferred.includes(key) ? l - r : r - l;
+  }
+  return Number(left.discovery_position) - Number(right.discovery_position) || String(a.name).localeCompare(String(b.name));
 }
