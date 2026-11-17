@@ -45,7 +45,7 @@ Scout is lazy, with standards:
 
 ### Claude Code: install the plugin
 
-With Node 24.3+ on your `PATH`, run these two commands inside Claude Code:
+With Node 22 or newer on your `PATH`, run these two commands inside Claude Code:
 
 ```text
 /plugin marketplace add Memrov/package-scout
@@ -65,7 +65,7 @@ troubleshooting and development.
 
 ### Other MCP clients: npm
 
-With Node 24.3+, configure a stdio MCP server with:
+With Node 22 or newer, configure a stdio MCP server with:
 
 ```json
 {

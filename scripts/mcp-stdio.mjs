@@ -2,9 +2,14 @@
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 
+// From source, the import below relies on Node's built-in type stripping (24.3+).
+// The bundled plugin and npm server are plain JavaScript and need only Node 22,
+// so scripts/build-claude-plugin.mjs defines PACKAGE_SCOUT_MINIMUM_NODE for them.
+const minimum = typeof PACKAGE_SCOUT_MINIMUM_NODE === 'string' ? PACKAGE_SCOUT_MINIMUM_NODE : '24.3.0';
 const [major, minor] = process.versions.node.split('.').map(Number);
-if (major < 24 || (major === 24 && minor < 3)) {
-  console.error('Package Scout requires Node.js 24.3.0 or newer.');
+const [requiredMajor, requiredMinor] = minimum.split('.').map(Number);
+if (major < requiredMajor || (major === requiredMajor && minor < requiredMinor)) {
+  console.error(`Package Scout requires Node.js ${minimum} or newer. Found ${process.version} at ${process.execPath}.`);
   process.exit(1);
 }
 

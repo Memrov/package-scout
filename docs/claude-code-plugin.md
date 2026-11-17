@@ -7,7 +7,7 @@ calls for an npm package or a platform built-in.
 ## Install
 
 Install [Claude Code](https://code.claude.com/docs/en/quickstart) and put
-**Node.js 24.3.0 or newer** on your `PATH`. In a Claude Code session, run:
+**Node.js 22 or newer** on your `PATH`. In a Claude Code session, run:
 
 ```text
 /plugin marketplace add Memrov/package-scout
@@ -94,9 +94,12 @@ negotiation, and a cached path containing spaces with no build tools or
 `node scripts/mcp-stdio.mjs` (or `npm run --silent mcp`); stdout is protocol only.
 
 If `/mcp` reports a startup error, check `node --version` in the shell that
-launched Claude Code. If live lookups fail behind an HTTP proxy, use Node's
-supported proxy configuration, such as `NODE_USE_ENV_PROXY=1` on current Node
-24, while preserving the configured proxy and CA environment variables.
+launched Claude Code. The bundled server needs Node 22 or newer; on an older
+Node it exits and names the version and path it found. Running the TypeScript
+source directly still needs Node 24.3+. If live lookups fail behind an HTTP
+proxy, use Node's supported proxy configuration, such as `NODE_USE_ENV_PROXY=1`
+(experimental on Node 22), while preserving the configured proxy and CA
+environment variables.
 
 The plugin follows the official [creation guide](https://code.claude.com/docs/en/plugins/create),
 [component reference](https://code.claude.com/docs/en/plugins/components), and
