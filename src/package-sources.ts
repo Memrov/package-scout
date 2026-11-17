@@ -22,7 +22,8 @@ export function object(value: unknown): Json {
 
 export function packageName(value: unknown): string {
   if (typeof value !== 'string' || value.length > 214 ||
-      !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(value)) {
+      !/^(?:@[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+|[A-Za-z0-9][A-Za-z0-9._-]*)$/.test(value) ||
+      value.replace(/^@/, '').split('/').some(part => part === '.' || part === '..')) {
     throw new Error('Invalid npm package name');
   }
   return value;
@@ -46,6 +47,7 @@ function projectKey(value: unknown): string {
 
 export class PackageSources {
   readonly counts = { total: 0, npm: 0, deps_dev: 0 };
+  skippedSearchRecords = 0;
   private readonly fetchImpl: typeof fetch;
   private readonly pause: (ms: number) => Promise<void>;
   private readonly maxRequests: number;
@@ -105,11 +107,14 @@ export class PackageSources {
     const data = await this.request(`${NPM_API}/-/v1/search?${query}`);
     if (!Array.isArray(data.objects) || data.objects.length > size) throw new Error('Invalid npm search response');
     const seen = new Set<string>();
-    return data.objects.map(object).filter(item => {
-      const name = packageName(object(item.package).name);
-      if (seen.has(name)) return false;
+    return data.objects.flatMap(value => {
+      let item: Json;
+      let name: string;
+      try { item = object(value); name = packageName(object(item.package).name); }
+      catch { this.skippedSearchRecords++; return []; }
+      if (seen.has(name)) return [];
       seen.add(name);
-      return true;
+      return [item];
     });
   }
 

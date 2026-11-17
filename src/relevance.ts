@@ -1,14 +1,17 @@
 import { object, type Json } from './package-sources.ts';
 
 export function matchKeywords(metadata: Json, keywords: string[]): string[] {
-  const text = [metadata.name, metadata.description, ...(Array.isArray(metadata.keywords) ? metadata.keywords : [])].filter(v => typeof v === 'string').join(' ').toLowerCase();
-  const words = text.split(/[^a-z0-9]+/).filter(Boolean);
+  const fields = [metadata.name, metadata.description, ...(Array.isArray(metadata.keywords) ? metadata.keywords : [])]
+    .filter((v): v is string => typeof v === 'string').map(text => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
   return keywords.filter(term => {
     const tokens = term.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-    return tokens.length > 0 && tokens.every(token => {
+    const matches = (word: string, token: string) => {
       const singular = token.length > 3 && !token.endsWith('ss') ? token.replace(/s$/, '') : token;
-      return words.some(word => word.startsWith(singular.length > 7 ? singular.slice(0, 7) : singular));
-    });
+      return word.startsWith(singular.length > 7 ? singular.slice(0, 7) : singular);
+    };
+    // Preserve operation direction within a phrase: text-to-speech is not speech-to-text.
+    return tokens.length > 0 && fields.some(words => words.some((_, start) =>
+      tokens.every((token, offset) => matches(words[start + offset] ?? '', token))));
   });
 }
 
@@ -67,6 +70,8 @@ export function roleEvidence(metadata: Json, keywords: string[]): Json {
     ['framework support module', /\b(?:utility functions for|utilities for|shared .{0,80}primitives|core logic for)\b/i, /\b(?:utilit\w*|primitives?|headless|logic)\b/i],
     ['platform specific', /\b(?:react[- ]native|capacitor|jupyterlab|docusaurus|sanity schemas)\b/i, /\b(?:native|capacitor|jupyter|docusaurus|sanity)\b/i],
     ['specialized fork', /\bfork of\b/i, /\bfork\b/i],
+    ['calculator', /\b(?:calculators?|sms[- ]length|sms[- ]segments?)\b/i, /\b(?:calculat\w*|length|segments?|count)\b/i],
+    ['testing utility', /\b(?:testing|test automation|continuous integration|mocking|fixtures?)\b/i, /\b(?:test\w*|mock\w*|fixtures?)\b/i],
   ] as const;
   const reasons = roles.filter(([, pattern, requested]) => pattern.test(text) && !requested.test(query)).map(([role]) => role);
   return { supporting: reasons.length > 0, reasons, preference: reasons.length ? 0 : 1 };

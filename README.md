@@ -6,7 +6,7 @@ A private ChatGPT plugin and a small hosted MCP for finding existing npm package
 
 `search_packages` returns up to three candidates. Only `keywords` is required; normal calls need at most these three parameters:
 
-- `keywords`: required search concepts, combined length 2–64 characters. Every concept must match by default; use terms such as `csv` plus `parser`, rather than interchangeable synonyms.
+- `keywords`: operation-specific search concepts, combined length 2–64 characters. Put the main operation/domain first, such as `speech synthesis`, `speech recognition`, or `sms` plus `send`. Multiword phrases preserve direction. Matching is soft by default; partial matches list the unmatched concepts.
 - `runtime`: `any`, `browser`, or `node`. Prefer matching declarations, including web-framework peers. Explicit incompatibilities are excluded; missing declarations remain eligible with support marked unknown.
 - `niche`: `false` by default uses 1,000+ weekly downloads; `true` includes smaller packages while retaining the other filters.
 
@@ -18,7 +18,7 @@ Example tool arguments:
 
 ```json
 {
-  "keywords": ["speech", "transcription"],
+  "keywords": ["speech recognition"],
   "runtime": "browser",
   "niche": false
 }
@@ -36,25 +36,27 @@ This workflow is separate from the hosted MCP's search and inspection tools. It 
 
 Vibe, production, and internal share the same default filters: at least 1,000 weekly downloads, an identified license, and deps.dev version evidence. `niche: true` removes the adoption floor; an explicit `min_weekly_downloads` takes precedence over both niche and profile defaults. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested. Legacy balanced uses production ordering; established uses production ordering with a 10,000-download floor; explore uses vibe ordering without adoption, identified-license, or version-evidence floors.
 
-Registry names, descriptions and keyword lists must match every requested concept by default. An explicit `match_all_keywords: false` permits partial matches. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
+Registry names, descriptions and publisher keyword lists must match at least one concept by default. Set `match_all_keywords: true` when every supplied concept must appear in that metadata. Complete matches rank before partial matches; `relevance_evidence` lists matched/unmatched concepts and the match type. These are retrieval signals, not verified capabilities. Publisher `keywords` are returned as discovery hints, not a controlled category taxonomy. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
 
-Search starts with ordinary npm text retrieval. If fewer than three records survive inexpensive keyword, adoption, package-type and runtime screening, it makes one additional tagged query, deduplicates candidates, and applies the original filters. It never silently lowers the adoption floor. If the alternate query fails, the original candidates remain available with a warning. `search.fallback_used` and `search.fallback_status` report that step. When a non-niche request returns fewer than requested, `next_search` contains ready-to-use arguments for the same tool with `niche: true` and the other caller constraints preserved.
+Search starts with ordinary npm text retrieval. If fewer than three records survive inexpensive keyword, adoption, package-type and runtime screening, it makes one additional tagged query for the first concept, deduplicates candidates, and applies the original filters. It does not intersect all concept tags or silently lower the adoption floor. If the alternate query fails, original candidates remain available with a warning. `search.fallback_used`, `search.fallback_status` and `search.keyword_policy` report those choices. When a non-niche request returns fewer than requested, `next_search` contains ready-to-use niche arguments with explicit constraints preserved.
+
+Existing uppercase names and scoped names beginning with a dot or underscore can be inspected without rewriting their identity. Malformed or unsupported search rows are skipped individually and counted in `filtered_counts.unsupported_search_record`; one row cannot abort the whole search. Other exclusion counts describe this bounded pool, not all packages in npm.
 
 Ranking version 3 is implemented in `src/quality.ts`. All profiles first compare keyword coverage, package-role hints, matches in names/descriptions, runtime evidence, and weekly-download orders of magnitude. Profile preferences then break ties:
 
 | Profile | Priorities after the shared discovery criteria |
 | --- | --- |
-| `vibe` | Fewer declared runtime dependencies, fewer declared install hooks, upstream OpenSSF score, upstream Maintained check, weekly downloads. |
-| `production` | Upstream OpenSSF score, upstream Maintained check, weekly downloads, fewer declared runtime dependencies, fewer declared install hooks. |
-| `internal` | Fewer declared install hooks, fewer declared runtime dependencies, upstream OpenSSF score, upstream Maintained check, weekly downloads. |
+| `vibe` | Fewer declared runtime dependencies, fewer declared install hooks, weekly downloads, upstream OpenSSF score, upstream Maintained check. |
+| `production` | Weekly downloads, upstream OpenSSF score, upstream Maintained check, fewer declared runtime dependencies, fewer declared install hooks. |
+| `internal` | Fewer declared install hooks, fewer declared runtime dependencies, weekly downloads, upstream OpenSSF score, upstream Maintained check. |
 
 Observed values sort before unknown values for each criterion. Remaining ties preserve discovery order, then package name. This is an evidence-coverage preference, not an assertion that unmeasured packages are poor quality. The priorities are product policies, not empirically calibrated weights.
 
-Role hints put unrequested adapters, error formatters, stores, specialized forks and framework support modules behind primary-library candidates. A caller explicitly requesting that role is not penalized. These are conservative text heuristics and remain visible in `role_evidence`; they do not prove that a package is a complete solution. `runtime_evidence` distinguishes declared, unknown and explicitly incompatible support.
+Role hints put unrequested adapters, error formatters, calculators, testing utilities, stores, specialized forks and framework support modules behind primary-library candidates. A caller explicitly requesting that role is not penalized. These are conservative text heuristics and remain visible in `role_evidence`; they do not prove that a package is a complete solution. `runtime_evidence` distinguishes declared, unknown and explicitly incompatible support.
 
-Use operation-specific keywords: `jwt` plus `verify`, or `request` plus `rate` plus `limit`. Tags alone may describe related functionality rather than the operation you need. The wider candidate retrieval and adoption tie-breaker borrow the simple textual-relevance/adoption pattern documented by [Algolia npm-search](https://github.com/algolia/npm-search#ranking). [npm's current search documentation](https://docs.npmjs.com/searching-for-and-choosing-packages-to-download/) explains why its neutral keyword ordering alone does not establish suitability. No competitor API is required.
+Use operation-specific keywords and add a framework only when required. `speech synthesis` preserves a different operation from `speech recognition`; disconnected `speech` and `text` terms do not convey that distinction. Try one alternative operation term if the shortlist misses the task. Inspect a final choice with `get_package_details(include_readme=true)` for its actual operation, runtime/framework requirements, API keys, external services and limitations. Return fewer recommendations when appropriate. Tags alone may describe related functionality rather than the operation you need. [npm's search documentation](https://docs.npmjs.com/searching-for-and-choosing-packages-to-download/) describes its metadata/README retrieval; our metadata checks are narrower.
 
-OpenSSF scores, checks, dates, and source references retain their upstream values. Search returns compact scores and dates; `get_package_details` retains the full check summaries. When several associated source repositories have scores, ranking uses the lowest observed score and reports coverage. Scores are not discounted with age; age is reported separately. See [OpenSSF's scoring methodology](https://github.com/ossf/scorecard#aggregate-score). The LFX Health Score is not computed because maintainer and contributor data needed for that model is unavailable in the current pipeline.
+OpenSSF is optional supporting evidence: a missing or low score never excludes a package. In version 3.2.0, Scorecard and its Maintained check break ties after observed weekly downloads, so merely having a score cannot displace an otherwise tied package with stronger adoption. Scores, checks, dates, and source references retain their upstream values. Search returns compact scores and dates; `get_package_details` retains full check summaries. When several associated source repositories have scores, ranking uses the lowest observed score and reports coverage. Scores are not discounted with age. See [OpenSSF's methodology](https://github.com/ossf/scorecard#aggregate-score). The LFX Health Score is not computed.
 
 The former 100-point composite is retired: `quality.score` is now `null`, and callers should read `quality.signals`, `quality.priorities`, `quality.scorecard`, and `scoring.version`. Missing signals remain `null`. `integration_effort` and `functional_evaluation` are explicitly not assessed; GitHub evaluation reports remain separate evidence. Dependency counts and declared install hooks are footprint facts, not an integration-effort score, proof of local processing, or a count of required external services. Unlisted implicit native builds are not detected by the hook count.
 
@@ -85,5 +87,7 @@ npm run validate
 ```
 
 The preview serves `http://127.0.0.1:8787`. The build bundles TypeScript into `dist/server/index.js` and copies `.openai/hosting.json`. Sites manages hosting, authentication, the private plugin connection, and source versions. Preserve this project's `project_id` when updating it.
+
+The plugin's discovery guidance is maintained in [plugin/skills/package-discovery/SKILL.md](plugin/skills/package-discovery/SKILL.md). Publish MCP schema/instruction changes through the existing Site to refresh its connected plugin; overlay that skill into the existing App-backed plugin while retaining its current App configuration and audience.
 
 Application code is Apache-2.0. deps.dev-generated data is CC BY 4.0; aggregated package, documentation and project data retain their upstream terms. Each response includes attribution. See the [deps.dev API reference](https://docs.deps.dev/api/v3alpha/) and [npm registry API](https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md).

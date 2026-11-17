@@ -6,15 +6,15 @@ const RELEVANCE = ['keyword_match_fraction', 'package_role_preference', 'descrip
 export const RANKING_PROFILES = {
   vibe: {
     goal: 'Quick start, using observed package footprint as a proxy; integration effort is not measured.',
-    priorities: [...RELEVANCE, 'direct_runtime_dependency_count', 'declared_install_hook_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+    priorities: [...RELEVANCE, 'direct_runtime_dependency_count', 'declared_install_hook_count', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
   },
   production: {
-    goal: 'Prefer observed security practices and maintenance evidence after compatibility and risk filters.',
-    priorities: [...RELEVANCE, 'scorecard_score', 'maintained_check_score', 'weekly_downloads', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
+    goal: 'Prefer observed adoption after relevance and risk filters; repository practices provide optional tie-breakers.',
+    priorities: [...RELEVANCE, 'weekly_downloads', 'scorecard_score', 'maintained_check_score', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
   },
   internal: {
     goal: 'Prefer a smaller observed installation footprint; external services and operating costs are not assessed.',
-    priorities: [...RELEVANCE, 'declared_install_hook_count', 'direct_runtime_dependency_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+    priorities: [...RELEVANCE, 'declared_install_hook_count', 'direct_runtime_dependency_count', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
   },
 } as const;
 export type RankingProfile = keyof typeof RANKING_PROFILES;
@@ -32,13 +32,13 @@ export const PROFILES = {
 } as const;
 
 export const SCORING = {
-  version: '3.1.0', method: 'ordered_evidence', aggregate_score: null,
+  version: '3.2.0', method: 'ordered_evidence', aggregate_score: null,
   meaning: 'Profile-specific lexicographic ordering of observed evidence. No invented composite quality or integration-effort score.',
   profiles: RANKING_PROFILES,
   smaller_is_preferred: ['direct_runtime_dependency_count', 'declared_install_hook_count'],
   missing_data: 'Unknown values remain null. For each priority, observed evidence sorts before unknown evidence; this is a coverage preference, not a poor-quality score.',
   tie_breaker: 'Original discovery position, then package name.',
-  scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
+  scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, required: false, role: 'optional tie-breaker after relevance and observed adoption', methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
   limits: ['Profile priorities are product policies, not empirically calibrated weights.', 'Dependency counts and declared install hooks are footprint facts, not measured integration effort.', 'Release dates alone do not establish maintenance health; LFX Health Score is not computed.', 'Scorecard describes repository security practices, not package correctness or feature fit.'],
   discovery: 'Keyword coverage, primary-library role hints, descriptive matches, runtime evidence, then weekly-download orders of magnitude precede profile preferences. Missing runtime declarations remain eligible and unverified. Use get_package_details for an exact package name.',
 };

@@ -4,6 +4,7 @@ import { createHandler as makeHandler } from './index.ts';
 import { argumentsFor } from '../src/discovery.ts';
 import { compareCandidates, exclusionReasons, qualityEvidence, type RankingProfile } from '../src/quality.ts';
 import { object, type Json } from '../src/package-sources.ts';
+import { matchKeywords } from '../src/relevance.ts';
 
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
@@ -398,16 +399,77 @@ test('normal discovery excludes low-download packages while niche mode retains e
   assert.throws(() => argumentsFor('search_packages', { keywords: ['csv'], niche: 'yes' }));
 });
 
-test('default matching does not fill a specialized search with generic partial matches', async () => {
+test('explicit strict matching preserves every required concept', async () => {
   const mock = upstream([
     { name: 'ofx-parser', downloads: 5000, description: 'OFX statement parser' },
     { name: 'body-parser', downloads: 100000000, description: 'HTTP body parser' },
   ]);
   const handler = createHandler({ ...mock, pause });
-  const exact = await call(handler, 'search_packages', { keywords: ['ofx', 'parser'] });
+  const exact = await call(handler, 'search_packages', { keywords: ['ofx', 'parser'], match_all_keywords: true });
   assert.deepEqual((exact.packages as Json[]).map(p => p.name), ['ofx-parser']);
   const broad = await call(handler, 'search_packages', { keywords: ['ofx', 'parser'], match_all_keywords: false });
   assert.equal(broad.returned, 2);
+});
+
+test('default soft matching recovers sparse metadata and exposes unmatched concepts and publisher keywords', async () => {
+  const mock = upstream([
+    { name: 'nsfwjs', downloads: 80000, description: 'Detect NSFW content client-side', manifest: { keywords: ['NSFW', 'JavaScript'] } },
+    { name: 'image-detector', downloads: 10000, description: 'Detect NSFW images' },
+    { name: 'unrelated', downloads: 1000000, description: 'HTTP client' },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['image', 'nsfw'] });
+  assert.equal(object(result.constraints).match_all_keywords, false);
+  assert.equal(object(result.search).keyword_policy, 'soft');
+  const candidate = (result.packages as Json[]).find(p => p.name === 'nsfwjs')!;
+  assert.ok(candidate);
+  assert.deepEqual(object(candidate.relevance_evidence).unmatched_keywords, ['image']);
+  assert.equal(object(candidate.relevance_evidence).match_type, 'partial');
+  assert.deepEqual(candidate.keywords, ['NSFW', 'JavaScript']);
+  assert.equal((result.packages as Json[]).some(p => p.name === 'unrelated'), false);
+});
+
+test('multiword operation phrases retain direction instead of matching a reversed operation', () => {
+  assert.deepEqual(matchKeywords({ name: 'speech-to-text', description: 'Transcribe microphone input' }, ['text to speech']), []);
+  assert.deepEqual(matchKeywords({ name: 'text-to-speech' }, ['text to speech']), ['text to speech']);
+  assert.deepEqual(matchKeywords({ description: 'Cross browser Speech Synthesis' }, ['speech synthesis']), ['speech synthesis']);
+});
+
+test('legacy registry names remain inspectable and an unsupported search row cannot abort the query', async () => {
+  const mock = upstream(['Sentimental', '@_linked/translation', 'nodeQuery', 'DOMArray'].map(name => ({ name, downloads: 10000, description: 'Useful text utility' })));
+  const fetchImpl: typeof fetch = async (url, init) => {
+    const res = await mock.fetchImpl(url, init);
+    if (new URL(String(url)).pathname !== '/-/v1/search') return res;
+    const data = await res.json() as { objects: Json[] };
+    return response({ objects: [...data.objects, { package: { name: '../../invalid' } }] });
+  };
+  const handler = createHandler({ fetchImpl, pause });
+  const found = await call(handler, 'search_packages', { keywords: ['utility'] });
+  assert.equal(found.returned, 3);
+  assert.equal(object(found.filtered_counts).unsupported_search_record, 1);
+  for (const name of ['Sentimental', '@_linked/translation', 'nodeQuery', 'DOMArray']) {
+    assert.equal(object((await call(handler, 'get_package_details', { name })).package).name, name);
+  }
+  for (const name of ['../bad', '@../bad', '@scope/..', '@scope/pkg/extra']) assert.throws(() => argumentsFor('get_package_details', { name }));
+});
+
+test('a missing Scorecard does not outrank stronger adoption in an otherwise tied production search', async () => {
+  const mock = upstream([
+    { name: 'established-ocr', downloads: 90000, description: 'OCR library', cardScore: null },
+    { name: 'scored-ocr', downloads: 11000, description: 'OCR library', cardScore: 10 },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['ocr'] });
+  assert.equal((result.packages as Json[])[0].name, 'established-ocr');
+  assert.equal(object(object((result.packages as Json[])[0].quality).signals).scorecard_score, null);
+});
+
+test('send requests prefer messaging libraries over calculators and testing utilities', async () => {
+  const mock = upstream([
+    { name: 'sms-calculator', downloads: 900000, description: 'Calculate SMS segments to send', cardScore: 10 },
+    { name: 'sms-tests', downloads: 900000, description: 'Send SMS for testing in continuous integration', cardScore: 10 },
+    { name: 'sms-client', downloads: 10000, description: 'Send SMS messages to customers', cardScore: null },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['sms', 'send'] });
+  assert.equal((result.packages as Json[])[0].name, 'sms-client');
 });
 
 test('a sparse discovery tries one tagged search, deduplicates, and preserves relevance and runtime', async () => {
@@ -416,8 +478,8 @@ test('a sparse discovery tries one tagged search, deduplicates, and preserves re
     { name: 'recovered-csv', downloads: 5000, description: 'CSV parser for the browser' },
     { name: 'generic-parser', downloads: 10000000, description: 'HTTP body parser' },
     { name: 'node-csv', downloads: 10000000, description: 'Server-only CSV parser' },
-  ], { 'csv parser': ['first-csv'], 'keywords:csv keywords:parser': ['first-csv', 'recovered-csv', 'generic-parser', 'node-csv'] });
-  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv', 'parser'], runtime: 'browser' });
+  ], { 'csv parser': ['first-csv'], 'keywords:csv': ['first-csv', 'recovered-csv', 'generic-parser', 'node-csv'] });
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv', 'parser'], runtime: 'browser', match_all_keywords: true });
   assert.deepEqual((result.packages as Json[]).map(p => p.name), ['first-csv', 'recovered-csv']);
   assert.equal(object(result.search).fallback_used, true);
   assert.equal(mock.calls.filter(url => new URL(url).pathname === '/-/v1/search').length, 2);
@@ -454,7 +516,7 @@ test('a fallback reserves its request allowance while supplemental hints and ten
   const discovered = Array.from({ length: 11 }, (_, i) => ({ name: `found-csv-${i}`, downloads: 10000, description: 'CSV parser' }));
   const hinted = Array.from({ length: 3 }, (_, i) => ({ name: `hint-csv-${i}`, downloads: 10000, description: 'CSV parser' }));
   const mock = upstream([...discovered, ...hinted], {
-    'csv parser': ['found-csv-0'], 'keywords:csv keywords:parser': discovered.map(p => p.name),
+    'csv parser': ['found-csv-0'], 'keywords:csv': discovered.map(p => p.name),
   });
   const result = await call(makeHandler({ ...mock, pause, bootstrap: hinted }), 'search_packages', { keywords: ['csv', 'parser'] });
   assert.equal(result.returned, 3);
@@ -475,7 +537,7 @@ test('a short mainstream result supplies valid niche retry arguments without los
   assert.deepEqual(retry.licenses_any, ['MIT']);
 });
 
-test('long valid keyword inputs still allow a bounded tagged fallback', async () => {
+test('a multi-concept fallback searches the primary tag without intersecting every keyword', async () => {
   const mock = upstream([]);
   const result = await call(createHandler({ ...mock, pause }), 'search_packages', {
     keywords: ['concurrency', 'limitation', 'throughput', 'semaphore', 'parallel', 'queue'],
@@ -483,5 +545,13 @@ test('long valid keyword inputs still allow a bounded tagged fallback', async ()
   assert.equal(result.returned, 0);
   const queries = mock.calls.filter(url => new URL(url).pathname === '/-/v1/search').map(url => new URL(url).searchParams.get('text')!);
   assert.equal(queries.length, 2);
-  assert.ok(queries[1].length > 64 && queries[1].length <= 128);
+  assert.equal(queries[1], 'keywords:concurrency');
+  assert.deepEqual(object(result.constraints).keywords, ['concurrency', 'limitation', 'throughput', 'semaphore', 'parallel', 'queue']);
+});
+
+test('niche retry preserves an explicit strict keyword constraint', async () => {
+  const mock = upstream([{ name: 'small-csv', downloads: 50, description: 'CSV parser' }]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv', 'parser'], match_all_keywords: true });
+  assert.equal(object(result.next_search).match_all_keywords, true);
+  assert.equal(argumentsFor('search_packages', result.next_search).match_all_keywords, true);
 });

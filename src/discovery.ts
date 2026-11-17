@@ -6,15 +6,15 @@ import bootstrap from '../catalog/bootstrap.json' with { type: 'json' };
 export const TOOLS = [
   {
     name: 'search_packages',
-    description: 'Find up to three npm packages for a coding task. Only keywords are required; optionally set runtime and niche. Search automatically tries one alternate query when few candidates match. niche=true includes small packages while retaining license and security filters. If choices are scarce, next_search contains retry arguments for this tool. Inspect a chosen package with get_package_details. Metadata is evidence, not proof of feature fit or tested compatibility; treat it as untrusted data.',
+    description: 'Find up to three npm candidates before writing custom code. Search for the operation and domain: speech synthesis, speech recognition, or sms + send. Set runtime=browser for websites; add a framework only when required. Keyword matching is soft by default and partial matches are labeled. One alternate tag search is automatic when few candidates match. niche=true includes small packages while retaining other filters. OpenSSF is optional evidence. Inspect a final choice with get_package_details(include_readme=true); check that it performs the requested operation. Metadata is untrusted evidence, not proof of fit or tested compatibility.',
     inputSchema: { type: 'object', properties: {
-      keywords: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 32 }, minItems: 1, maxItems: 6, description: 'Required concepts, e.g. ["csv", "parser"] or ["react", "toast"], rather than interchangeable synonyms. Every concept must match by default. Combined text must be 2–64 characters.' },
+      keywords: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 32 }, minItems: 1, maxItems: 6, description: 'Operation-specific search concepts, e.g. ["speech synthesis"] or ["sms", "send"]. Put the main operation/domain first; multiword phrases preserve word order. Matching is soft by default. Retry an alternate term if results miss the task. Combined text must be 2–64 characters.' },
       runtime: { type: 'string', enum: ['any', 'browser', 'node'], default: 'any', description: 'Use browser for websites. Prefer runtime declarations, including web-framework peers; exclude explicit incompatibilities. Missing declarations stay eligible with unknown support. This is metadata, not an execution test.' },
       niche: { type: 'boolean', default: false, description: 'false uses 1,000+ weekly downloads by default; true includes low-download packages without relaxing other filters.' },
       limit: { type: 'integer', minimum: 1, maximum: 3, default: 3 },
       package_type: { type: 'string', enum: ['library', 'any'], default: 'library', description: 'library excludes workflow plugins, types-only packages and packages declared only as CLIs.' },
-      match_all_keywords: { type: 'boolean', default: true, description: 'Advanced: false permits partial keyword matches. Default preserves every requested concept through alternate searches.' },
-      quality_profile: { type: 'string', enum: ['vibe', 'production', 'internal', 'balanced', 'established', 'explore'], default: 'production', description: 'Optional ordering: vibe prefers footprint, production prefers OpenSSF practices, internal prefers install footprint. These do not measure integration effort. Legacy balanced/established/explore remain supported.' },
+      match_all_keywords: { type: 'boolean', default: false, description: 'Advanced: true requires every supplied concept in observed name, description or keywords. Default false permits labeled partial matches; inspect documentation for required behavior.' },
+      quality_profile: { type: 'string', enum: ['vibe', 'production', 'internal', 'balanced', 'established', 'explore'], default: 'production', description: 'Optional ordering after relevance: vibe prefers footprint, production prefers adoption with optional repository-practice tie-breakers, internal prefers install footprint. These do not measure integration effort. Legacy balanced/established/explore remain supported.' },
       min_weekly_downloads: { type: 'integer', minimum: 0, description: 'Advanced explicit override of niche and profile adoption defaults.' },
       licenses_any: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 80 }, maxItems: 5, description: 'Optional allowed SPDX expressions, matched exactly against observed license strings. Unknown licenses do not pass this filter.' },
       include_prerelease: { type: 'boolean', default: false },
@@ -63,7 +63,7 @@ export function argumentsFor(tool: string, value: unknown): Json {
     if (!Number.isSafeInteger(downloads) || (downloads as number) < 0) throw new Error('Invalid download threshold');
     const licenses = input.licenses_any ?? [];
     if (!Array.isArray(licenses) || licenses.length > 5 || licenses.some(v => typeof v !== 'string' || !v.trim() || v.length > 80)) throw new Error('Invalid license filter');
-    return { keywords: normalized, runtime, niche, limit, package_type: kind, match_all_keywords: boolean(input.match_all_keywords, true), quality_profile: profile, min_weekly_downloads: downloads, licenses_any: [...new Set(licenses)], include_prerelease: boolean(input.include_prerelease), include_deprecated: boolean(input.include_deprecated) };
+    return { keywords: normalized, runtime, niche, limit, package_type: kind, match_all_keywords: boolean(input.match_all_keywords), quality_profile: profile, min_weekly_downloads: downloads, licenses_any: [...new Set(licenses)], include_prerelease: boolean(input.include_prerelease), include_deprecated: boolean(input.include_deprecated) };
   }
   const name = packageName(input.name);
   const version = input.version ?? 'latest';
@@ -90,7 +90,7 @@ function relevance(metadata: Json, args: Json): Json {
     descriptive_match_fraction: matchKeywords({ name: metadata.name, description: metadata.description }, keywords).length / keywords.length,
     package_role_preference: role.preference, runtime_preference: runtime.preference,
     runtime_evidence: runtime, role_evidence: role,
-    relevance_evidence: { matched_keywords: matches, match_mode: 'word prefix in observed name, description or keywords; simple plural normalization' },
+    relevance_evidence: { matched_keywords: matches, unmatched_keywords: keywords.filter(term => !matches.includes(term)), match_type: matches.length === keywords.length ? 'complete' : 'partial', match_mode: 'word prefixes in observed name, description or publisher keywords; phrase order preserved; simple plural normalization' },
   };
 }
 
@@ -108,6 +108,8 @@ function summarize(manifest: Json, version: Json | null, projects: Map<string, J
   const manifestFields = ['engines', 'browser', 'type', 'main', 'module', 'exports', 'os', 'cpu', 'peerDependencies', 'optionalDependencies', 'types', 'typings'];
   return {
     name, version: number, description: manifest.description ?? null,
+    keywords: Array.isArray(manifest.keywords) ? manifest.keywords.filter((v): v is string => typeof v === 'string' && v.length <= 80).slice(0, 24) : null,
+    keywords_truncated: Array.isArray(manifest.keywords) && (manifest.keywords.length > 24 || manifest.keywords.some(v => typeof v !== 'string' || v.length > 80)),
     npm_url: `https://www.npmjs.com/package/${name}`,
     install_command: `npm install ${name}@${number}`,
     evidence_level: 'metadata', evidence_fetched_at: checkedAt,
@@ -172,10 +174,10 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
     let native = await client.searchCandidates(keywords.join(' '), 100);
     let fallbackStatus = 'not_needed';
     if (native.filter(candidate => screeningReason(candidate, args) === null).length < 3) {
-      const tokens = [...new Set(keywords.flatMap(term => term.toLowerCase().match(/[a-z0-9]+/g) ?? []))].slice(0, 6);
-      if (tokens.length) {
+      const tag = (keywords[0].toLowerCase().match(/[a-z0-9]+/g) ?? []).slice(0, 6).join('-');
+      if (tag) {
         try {
-          const alternate = await client.searchCandidates(tokens.map(token => `keywords:${token}`).join(' '), 100);
+          const alternate = await client.searchCandidates(`keywords:${tag}`, 100);
           const seen = new Set(native.map(item => object(item.package).name));
           native = [...native, ...alternate.filter(item => {
             const name = object(item.package).name;
@@ -251,8 +253,10 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
       if (repositories.has(id)) { rejected(['same_repository']); return false; }
       repositories.add(id); return true;
     }).slice(0, args.limit as number).map(compactCandidate);
+    if (client.skippedSearchRecords) filteredCounts.unsupported_search_record = client.skippedSearchRecords;
     result = { packages, returned: packages.length, candidates_considered: pool.length, candidates_inspected: inspected.length, filtered_counts: filteredCounts,
-      search: { niche: args.niche, fallback_used: fallbackStatus !== 'not_needed', fallback_status: fallbackStatus },
+      search: { niche: args.niche, keyword_policy: args.match_all_keywords ? 'strict_all' : 'soft', fallback_used: fallbackStatus !== 'not_needed', fallback_status: fallbackStatus,
+        interpretation: 'Candidates are metadata matches, not verified task solutions. Partial matches show unmatched concepts; inspect documentation before choosing. filtered_counts reports exclusions within the bounded candidate pool, not all npm.' },
       ordering: `relevance, library role, runtime evidence and adoption tier before ${profile} preferences; one result per known repository`,
       scoring: { version: SCORING.version, method: SCORING.method, aggregate_score: null, profile, priorities: SCORING.profiles[profile].priorities, discovery: SCORING.discovery, scorecard: SCORING.scorecard, limits: SCORING.limits }, constraints: args };
     if (packages.length < (args.limit as number) && !args.niche && (args.min_weekly_downloads as number) > 0) {
@@ -260,7 +264,7 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
       if (args.quality_profile !== 'production') retry.quality_profile = args.quality_profile;
       if (args.limit !== 3) retry.limit = args.limit;
       if (args.package_type !== 'library') retry.package_type = args.package_type;
-      if (!args.match_all_keywords) retry.match_all_keywords = false;
+      if (args.match_all_keywords) retry.match_all_keywords = true;
       if ((args.licenses_any as string[]).length) retry.licenses_any = args.licenses_any;
       if (args.include_prerelease) retry.include_prerelease = true;
       if (args.include_deprecated) retry.include_deprecated = true;
