@@ -10,11 +10,14 @@ const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeH
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
 type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
 const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
-function upstream(packages: Package[], listed?: string[]) {
+function upstream(packages: Package[], listed?: string[] | Record<string, string[]>) {
   const calls: string[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); calls.push(url.toString());
-    if (url.pathname === '/-/v1/search') return response({ objects: packages.filter(p => !listed || listed.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description, keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
+    if (url.pathname === '/-/v1/search') {
+      const selected = Array.isArray(listed) ? listed : listed?.[url.searchParams.get('text') ?? ''];
+      return response({ objects: packages.filter(p => !selected || selected.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description ?? 'CSV cache concurrency limit package for the browser', keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
+    }
     if (url.host === 'api.npmjs.org') {
       const name = decodeURIComponent(url.pathname.split('/').at(-1)!);
       return response({ package: name, downloads: packages.find(p => p.name === name)?.downloads });
@@ -292,7 +295,7 @@ test('browser discovery accepts web-framework peers and unknowns while rejecting
 });
 
 test('a wider metadata pool recovers candidates beyond the first ten without expanding manifest work', async () => {
-  const noise = Array.from({ length: 30 }, (_, i) => ({ name: `csv-choice-${i}`, description: 'CSV parser', downloads: 500 }));
+  const noise = Array.from({ length: 30 }, (_, i) => ({ name: `csv-choice-${i}`, description: 'CSV parser', downloads: 5000 }));
   const mock = upstream([...noise, { name: 'established-csv', description: 'CSV parser', downloads: 10000000 }]);
   const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'] });
   assert.equal((result.packages as Json[])[0].name, 'established-csv');
@@ -331,7 +334,7 @@ test('adoption tiers prevent a tiny known footprint dominating established unkno
     { name: 'small-decimal', description: 'Decimal arithmetic', downloads: 500, dependencies: {} },
     { name: 'established-decimal', description: 'Decimal arithmetic', downloads: 50000000 },
   ]);
-  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['decimal'], quality_profile: 'vibe' });
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['decimal'], quality_profile: 'vibe', niche: true });
   const first = (result.packages as Json[])[0];
   assert.equal(first.name, 'established-decimal');
   assert.equal(first.direct_runtime_dependency_count, null);
@@ -343,8 +346,8 @@ test('simple plurals retain useful matches without boosting a generic category n
     { name: 'other-chart', description: 'A chart library', downloads: 1000000 },
   ]);
   const handler = createHandler({ ...mock, pause });
-  assert.equal((await call(handler, 'search_packages', { keywords: ['charts'] })).returned, 2);
-  assert.equal(((await call(handler, 'search_packages', { keywords: ['chart'] })).packages as Json[])[0].name, 'other-chart');
+  assert.equal((await call(handler, 'search_packages', { keywords: ['charts'], niche: true })).returned, 2);
+  assert.equal(((await call(handler, 'search_packages', { keywords: ['chart'], niche: true })).packages as Json[])[0].name, 'other-chart');
 });
 
 test('valid array export fallbacks do not crash runtime inspection and native peers stay explicit', async () => {
@@ -373,4 +376,112 @@ test('an empty README is explicitly missing and generates a warning', async () =
   const result = await call(createHandler({ ...mock, pause }), 'get_package_details', { name: 'empty-docs', include_readme: true });
   assert.equal(object(result.readme).status, 'missing');
   assert.match(String((result.warnings as string[])[0]), /no README/);
+});
+
+test('normal discovery excludes low-download packages while niche mode retains every other safeguard', async () => {
+  const mock = upstream([
+    { name: 'small-csv', downloads: 833, description: 'CSV parser' },
+    { name: 'unsafe-csv', downloads: 900, description: 'CSV parser', vulnerable: true },
+    { name: 'unknown-license-csv', downloads: 900, description: 'CSV parser', license: null },
+    { name: 'unknown-version-csv', downloads: 900, description: 'CSV parser', license: 'MIT', missing: true },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const normal = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.equal(normal.returned, 0);
+  const niche = await call(handler, 'search_packages', { keywords: ['csv'], niche: true });
+  assert.deepEqual((niche.packages as Json[]).map(p => p.name), ['small-csv']);
+  assert.equal(object(niche.filtered_counts).known_direct_advisories, 1);
+  assert.equal(object(niche.filtered_counts).unidentified_license, 1);
+  assert.equal(object(niche.filtered_counts).missing_version_evidence, 1);
+  assert.equal(object(niche.meta).cache_hit, false);
+  assert.equal(niche.next_search, undefined);
+  assert.throws(() => argumentsFor('search_packages', { keywords: ['csv'], niche: 'yes' }));
+});
+
+test('default matching does not fill a specialized search with generic partial matches', async () => {
+  const mock = upstream([
+    { name: 'ofx-parser', downloads: 5000, description: 'OFX statement parser' },
+    { name: 'body-parser', downloads: 100000000, description: 'HTTP body parser' },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const exact = await call(handler, 'search_packages', { keywords: ['ofx', 'parser'] });
+  assert.deepEqual((exact.packages as Json[]).map(p => p.name), ['ofx-parser']);
+  const broad = await call(handler, 'search_packages', { keywords: ['ofx', 'parser'], match_all_keywords: false });
+  assert.equal(broad.returned, 2);
+});
+
+test('a sparse discovery tries one tagged search, deduplicates, and preserves relevance and runtime', async () => {
+  const mock = upstream([
+    { name: 'first-csv', downloads: 5000, description: 'CSV parser for the browser' },
+    { name: 'recovered-csv', downloads: 5000, description: 'CSV parser for the browser' },
+    { name: 'generic-parser', downloads: 10000000, description: 'HTTP body parser' },
+    { name: 'node-csv', downloads: 10000000, description: 'Server-only CSV parser' },
+  ], { 'csv parser': ['first-csv'], 'keywords:csv keywords:parser': ['first-csv', 'recovered-csv', 'generic-parser', 'node-csv'] });
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv', 'parser'], runtime: 'browser' });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['first-csv', 'recovered-csv']);
+  assert.equal(object(result.search).fallback_used, true);
+  assert.equal(mock.calls.filter(url => new URL(url).pathname === '/-/v1/search').length, 2);
+  assert.equal(mock.calls.filter(url => url.endsWith('/first-csv/latest')).length, 1);
+});
+
+test('three screened candidates avoid extra discovery even when final safeguards leave fewer results', async () => {
+  const mock = upstream([
+    { name: 'safe-csv', downloads: 5000, description: 'CSV parser' },
+    { name: 'risky-csv-one', downloads: 5000, description: 'CSV parser', vulnerable: true },
+    { name: 'risky-csv-two', downloads: 5000, description: 'CSV parser', vulnerable: true },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['safe-csv']);
+  assert.equal(object(result.search).fallback_used, false);
+  assert.equal(mock.calls.filter(url => new URL(url).pathname === '/-/v1/search').length, 1);
+});
+
+test('a failed alternate search preserves primary evidence and makes no further search attempts', async () => {
+  const mock = upstream([{ name: 'first-csv', downloads: 5000, description: 'CSV parser' }]);
+  let searches = 0;
+  const fetchImpl: typeof fetch = async (url, init) => {
+    if (new URL(String(url)).pathname === '/-/v1/search' && ++searches > 1) return new Response('', { status: 429, headers: { 'Retry-After': '60' } });
+    return mock.fetchImpl(url, init);
+  };
+  const result = await call(createHandler({ fetchImpl, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['first-csv']);
+  assert.equal(searches, 2);
+  assert.equal(object(result.search).fallback_status, 'unavailable');
+  assert.ok((result.warnings as string[]).some(w => /alternate search/i.test(w)));
+});
+
+test('a fallback reserves its request allowance while supplemental hints and ten manifests remain bounded', async () => {
+  const discovered = Array.from({ length: 11 }, (_, i) => ({ name: `found-csv-${i}`, downloads: 10000, description: 'CSV parser' }));
+  const hinted = Array.from({ length: 3 }, (_, i) => ({ name: `hint-csv-${i}`, downloads: 10000, description: 'CSV parser' }));
+  const mock = upstream([...discovered, ...hinted], {
+    'csv parser': ['found-csv-0'], 'keywords:csv keywords:parser': discovered.map(p => p.name),
+  });
+  const result = await call(makeHandler({ ...mock, pause, bootstrap: hinted }), 'search_packages', { keywords: ['csv', 'parser'] });
+  assert.equal(result.returned, 3);
+  assert.equal(result.candidates_inspected, 10);
+  assert.equal(mock.calls.filter(url => url.endsWith('/latest')).length, 10);
+  assert.ok(Number(object(object(result.meta).upstream_requests).total) <= 16);
+  assert.equal(mock.calls.length, 16);
+});
+
+test('a short mainstream result supplies valid niche retry arguments without losing caller constraints', async () => {
+  const mock = upstream([{ name: 'first-csv', downloads: 5000, description: 'CSV parser', license: 'MIT' }]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', {
+    keywords: ['csv'], runtime: 'browser', quality_profile: 'vibe', licenses_any: ['MIT'], include_prerelease: true,
+  });
+  assert.deepEqual(result.next_search, { keywords: ['csv'], runtime: 'browser', niche: true, quality_profile: 'vibe', licenses_any: ['MIT'], include_prerelease: true });
+  const retry = argumentsFor('search_packages', result.next_search);
+  assert.equal(retry.min_weekly_downloads, 0);
+  assert.deepEqual(retry.licenses_any, ['MIT']);
+});
+
+test('long valid keyword inputs still allow a bounded tagged fallback', async () => {
+  const mock = upstream([]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', {
+    keywords: ['concurrency', 'limitation', 'throughput', 'semaphore', 'parallel', 'queue'],
+  });
+  assert.equal(result.returned, 0);
+  const queries = mock.calls.filter(url => new URL(url).pathname === '/-/v1/search').map(url => new URL(url).searchParams.get('text')!);
+  assert.equal(queries.length, 2);
+  assert.ok(queries[1].length > 64 && queries[1].length <= 128);
 });

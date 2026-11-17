@@ -19,7 +19,7 @@ export const RANKING_PROFILES = {
 } as const;
 export type RankingProfile = keyof typeof RANKING_PROFILES;
 
-const BASE_FILTERS = { min_weekly_downloads: 100, require_version_evidence: true, require_identified_license: true };
+const BASE_FILTERS = { min_weekly_downloads: 1000, require_version_evidence: true, require_identified_license: true };
 export const PROFILES = {
   vibe: { ...BASE_FILTERS, ranking: 'vibe' },
   production: { ...BASE_FILTERS, ranking: 'production' },
@@ -32,7 +32,7 @@ export const PROFILES = {
 } as const;
 
 export const SCORING = {
-  version: '3.0.0', method: 'ordered_evidence', aggregate_score: null,
+  version: '3.1.0', method: 'ordered_evidence', aggregate_score: null,
   meaning: 'Profile-specific lexicographic ordering of observed evidence. No invented composite quality or integration-effort score.',
   profiles: RANKING_PROFILES,
   smaller_is_preferred: ['direct_runtime_dependency_count', 'declared_install_hook_count'],

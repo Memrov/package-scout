@@ -4,12 +4,13 @@ A private ChatGPT plugin and a small hosted MCP for finding existing npm package
 
 ## Tools
 
-`search_packages` returns up to three candidates. Parameters include:
+`search_packages` returns up to three candidates. Only `keywords` is required; normal calls need at most these three parameters:
 
-- `keywords`: short search keywords, combined length 2–64 characters.
+- `keywords`: required search concepts, combined length 2–64 characters. Every concept must match by default; use terms such as `csv` plus `parser`, rather than interchangeable synonyms.
 - `runtime`: `any`, `browser`, or `node`. Prefer matching declarations, including web-framework peers. Explicit incompatibilities are excluded; missing declarations remain eligible with support marked unknown.
-- `quality_profile`: `vibe`, `production` (default), or `internal`. Legacy `balanced`, `established`, and `explore` requests remain supported.
-- `licenses_any`, `min_weekly_downloads`, `match_all_keywords`, `package_type`, and explicit deprecated/prerelease overrides.
+- `niche`: `false` by default uses 1,000+ weekly downloads; `true` includes smaller packages while retaining the other filters.
+
+Optional `quality_profile` selects `vibe`, `production` (default), or `internal`. Legacy `balanced`, `established`, and `explore` requests remain supported. Advanced license, download, keyword, package-type, deprecated and prerelease overrides remain available for existing clients.
 
 `get_package_details` inspects `name` and `version` (`latest` or an exact version). Optional `include_readme` and `include_dependency_summary` retrieve additional evidence for a final shortlist. Source URLs and evidence dates are returned.
 
@@ -17,10 +18,9 @@ Example tool arguments:
 
 ```json
 {
-  "keywords": ["transcription"],
+  "keywords": ["speech", "transcription"],
   "runtime": "browser",
-  "quality_profile": "vibe",
-  "limit": 3
+  "niche": false
 }
 ```
 
@@ -34,9 +34,11 @@ This workflow is separate from the hosted MCP's search and inspection tools. It 
 
 ## Filtering and scoring
 
-Vibe, production, and internal share the same default filters: at least 100 weekly downloads, an identified license, and deps.dev version evidence. The download floor can be overridden explicitly. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested. Legacy balanced uses production ordering; established uses production ordering with a 10,000-download floor; explore uses vibe ordering without adoption, identified-license, or version-evidence floors.
+Vibe, production, and internal share the same default filters: at least 1,000 weekly downloads, an identified license, and deps.dev version evidence. `niche: true` removes the adoption floor; an explicit `min_weekly_downloads` takes precedence over both niche and profile defaults. All profiles exclude known direct advisories and explicitly unlicensed packages. Deprecated and prerelease versions are excluded unless requested. Legacy balanced uses production ordering; established uses production ordering with a 10,000-download floor; explore uses vibe ordering without adoption, identified-license, or version-evidence floors.
 
-Registry names, descriptions and keyword lists must overlap the query. A caller may require all keywords. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
+Registry names, descriptions and keyword lists must match every requested concept by default. An explicit `match_all_keywords: false` permits partial matches. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
+
+Search starts with ordinary npm text retrieval. If fewer than three records survive inexpensive keyword, adoption, package-type and runtime screening, it makes one additional tagged query, deduplicates candidates, and applies the original filters. It never silently lowers the adoption floor. If the alternate query fails, the original candidates remain available with a warning. `search.fallback_used` and `search.fallback_status` report that step. When a non-niche request returns fewer than requested, `next_search` contains ready-to-use arguments for the same tool with `niche: true` and the other caller constraints preserved.
 
 Ranking version 3 is implemented in `src/quality.ts`. All profiles first compare keyword coverage, package-role hints, matches in names/descriptions, runtime evidence, and weekly-download orders of magnitude. Profile preferences then break ties:
 
@@ -62,7 +64,7 @@ Old stable packages remain eligible; release age is context and does not affect 
 
 npm provides keyword search, exact manifests, optional README content, and download statistics. deps.dev provides batched version/project facts and optional resolved dependency graphs. A small bundled catalog supplies discovery hints when npm search misses a known package; every selected hint is checked live before return.
 
-Each search retrieves up to 100 cheap npm search records and up to three catalog hints, selects at most ten for current-manifest inspection, and makes at most sixteen upstream requests. `candidates_considered` and `candidates_inspected` report those different stages. Fetches have a shared deadline, individual timeouts, response byte limits and bounded pagination. No automatic retries, package installs or package code execution occur.
+Each search retrieves up to 100 cheap npm search records per query and up to three catalog hints, selects at most ten for current-manifest inspection, and makes at most sixteen upstream requests. A fallback reserves its request allowance by reducing supplemental hints to two. `candidates_considered` and `candidates_inspected` report those different stages. Fetches have a shared deadline, individual timeouts, response byte limits and bounded pagination. There are no automatic retries of failed requests, package installs or package code execution.
 
 A bounded memory cache keeps successful searches for five minutes and inspections for fifteen minutes within a warm server instance. It stores at most 32 entries of at most 128 KiB each. Cache hits preserve original evidence dates and use no upstream calls. No provider-specific cache service or database is required. Entries contain public-source metadata indexed by hashed parameters. There is no D1, BigQuery, persistent user-query log, or server-side inference bill. Cache persistence across server instances and regions is best effort.
 

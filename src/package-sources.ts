@@ -98,7 +98,7 @@ export class PackageSources {
   }
 
   async searchCandidates(term: string, size: number): Promise<Json[]> {
-    if (term.length < 2 || term.length > 64 || !term.trim() || !Number.isInteger(size) || size < 1 || size > 100) {
+    if (term.length < 2 || term.length > 128 || !term.trim() || !Number.isInteger(size) || size < 1 || size > 100) {
       throw new Error('Invalid npm search parameters');
     }
     const query = new URLSearchParams({ text: term, size: String(size) });
