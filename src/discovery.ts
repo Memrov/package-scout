@@ -59,7 +59,7 @@ export function argumentsFor(tool: string, value: unknown): Json {
     if (typeof profile !== 'string' || !Object.hasOwn(PROFILES, profile)) throw new Error('Unknown quality profile');
     const runtime = input.runtime ?? 'any';
     const kind = input.package_type ?? 'library';
-    if (!['any', 'browser', 'node'].includes(String(runtime)) || !['library', 'any'].includes(String(kind))) throw new Error('Invalid runtime or package type');
+    if (typeof runtime !== 'string' || typeof kind !== 'string' || !['any', 'browser', 'node'].includes(runtime) || !['library', 'any'].includes(kind)) throw new Error('Invalid runtime or package type');
     const niche = boolean(input.niche);
     const downloads = input.min_weekly_downloads ?? (niche ? 0 : PROFILES[profile as keyof typeof PROFILES].min_weekly_downloads);
     if (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 3) throw new Error('limit must be 1–3');

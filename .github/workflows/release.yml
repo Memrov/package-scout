@@ -1,0 +1,106 @@
+name: Signed release
+
+on:
+  push:
+    tags: ['release-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Require a versioned commit already on main
+        run: |
+          release_version=$(node -p "JSON.parse(require('node:fs').readFileSync('npm/package.json', 'utf8')).version")
+          if [ "$GITHUB_REF_NAME" != "release-v$release_version" ]; then
+            echo 'Release tag does not match npm/package.json' >&2
+            exit 1
+          fi
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Install locked development and challenge dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix challenges/csv
+      - name: Verify source and pack the release
+        run: |
+          npm run check
+          npm test
+          npm run build
+          npm run validate
+          npm run npm:build
+          mkdir -p build/release
+          npm pack ./npm --ignore-scripts --json --pack-destination build/release > build/release/pack.json
+          cd build/release
+          sha256sum ./*.tgz > SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-package
+          path: |
+            build/release/*.tgz
+            build/release/SHA256SUMS
+          retention-days: 14
+
+  attest-and-release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: release-package
+          path: build/release
+      - name: Verify transferred artifact checksums
+        working-directory: build/release
+        run: sha256sum --check SHA256SUMS
+      - name: Generate signed SLSA provenance
+        id: provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: build/release/*.tgz
+      - name: Preserve the signed in-toto bundle
+        env:
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const bundle = JSON.parse(readFileSync(process.env.BUNDLE_PATH, 'utf8'));
+          assert.ok(bundle.dsseEnvelope?.signatures?.length);
+          const statement = JSON.parse(Buffer.from(bundle.dsseEnvelope.payload, 'base64').toString());
+          assert.equal(statement.predicateType, 'https://slsa.dev/provenance/v1');
+          writeFileSync('build/release/package-scout.intoto.jsonl', JSON.stringify(bundle) + '\n');
+          JS
+      - name: Verify provenance before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify build/release/*.tgz --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+            --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA" \
+            --bundle build/release/package-scout.intoto.jsonl
+      - name: Publish the verified release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/release/*.tgz build/release/SHA256SUMS build/release/package-scout.intoto.jsonl \
+            --verify-tag --title "Package Scout $GITHUB_REF_NAME" \
+            --notes 'Self-contained MCP server, SHA-256 checksums, and verified Sigstore-signed SLSA provenance. npm registry publication is tracked separately.'

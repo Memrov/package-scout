@@ -23,11 +23,20 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24'
           registry-url: https://registry.npmjs.org
+      - name: Require a versioned commit already on main
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          release_version=$(node -p "JSON.parse(require('node:fs').readFileSync('npm/package.json', 'utf8')).version")
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "npm-v$release_version" ]; then
+            echo 'Release tag does not match npm/package.json' >&2
+            exit 1
+          fi
       - name: Install locked development and challenge dependencies
         run: |
           npm ci --ignore-scripts
@@ -38,11 +47,6 @@ jobs:
           npm test
           npm run build
           npm run validate
-          release_version=$(node -p "JSON.parse(require('node:fs').readFileSync('npm/package.json', 'utf8')).version")
-          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "npm-v$release_version" ]; then
-            echo 'Release tag does not match npm/package.json' >&2
-            exit 1
-          fi
       - name: Publish with npm trusted publishing and provenance
         run: npm publish ./npm --access public --provenance --ignore-scripts
 

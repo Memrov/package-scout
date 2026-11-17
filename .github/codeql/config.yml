@@ -1,0 +1,7 @@
+name: Package Scout source security analysis
+paths-ignore:
+  - node_modules
+  - dist
+  - build
+  - claude-code/server.mjs
+  - npm/server.mjs

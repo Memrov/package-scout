@@ -22,8 +22,8 @@ the two tools.
 ## Initial publication
 
 The unscoped `package-scout` name belongs to an unrelated publisher. This source
-prepares `@memrov/package-scout`; confirm that scope is controlled by the
-maintainer before the first publish. A prepared manifest or successful dry run
+prepares `@memrov2/package-scout`, using the authenticated publisher's personal
+scope. A prepared manifest or successful dry run
 does not mean the package has been published.
 
 An authorized npm owner signs in using `npm login --auth-type=web` and publishes

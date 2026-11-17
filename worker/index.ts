@@ -93,10 +93,12 @@ export function createHandler(options: Options = {}) {
         try { return json(await call(path === '/v1/search' ? 'search_packages' : 'get_package_details', input, request, ctx)); }
         catch (error) { return json({ error: String((error as Error).message).slice(0, 400) }, 400); }
       }
-      const id = input.id ?? null;
+      const incomingId = input.id ?? null;
+      const validId = incomingId === null || typeof incomingId === 'string' || (typeof incomingId === 'number' && Number.isFinite(incomingId));
+      const id = validId ? incomingId : null;
       const rpc = (result: unknown) => json({ jsonrpc: '2.0', id, result });
       const rpcError = (code: number, message: string) => json({ jsonrpc: '2.0', id, error: { code, message } });
-      if (input.jsonrpc !== '2.0' || typeof input.method !== 'string' || (id !== null && typeof id !== 'string' && typeof id !== 'number')) return rpcError(-32600, 'Invalid JSON-RPC request');
+      if (input.jsonrpc !== '2.0' || typeof input.method !== 'string' || !validId) return rpcError(-32600, 'Invalid JSON-RPC request');
       if (input.method.startsWith('notifications/')) return new Response(null, { status: 202 });
       if (input.method === 'server/discover') return rpc({ supportedVersions: [PROTOCOL], capabilities: { tools: {} }, serverInfo: { name: 'package-scout', version: SCORING.version } });
       // Version negotiation: echo a supported version the client asked for, otherwise offer the latest.
