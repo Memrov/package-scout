@@ -1,0 +1,2403 @@
+{
+ "checked_at": "2026-11-17T17:30:00Z",
+ "before_commit": "4be10cf",
+ "after_commit": "f57b6a0",
+ "method": "The same search_packages calls against the bundled stdio server before and after, one call at a time, alternating which version ran first. Expected answers were written before results were seen and are the maintainer-facing judgment of what an experienced developer would accept; they are not an external benchmark. Held-out searches were not used to choose the dependents search terms.",
+ "environment": {
+  "node": "24.22.1",
+  "platform": "linux",
+  "network": "cloud container through an egress proxy"
+ },
+ "dependents_snapshot": {
+  "generated_at": "2026-11-17T17:05:08.961Z",
+  "packages": 7275
+ },
+ "summary": [
+  {
+   "searches": "main",
+   "runtime_hint": false,
+   "version": "before",
+   "right_at_1": 11,
+   "right_in_top_3": 15,
+   "right_at_1_or_built_in": 16,
+   "total": 20,
+   "median_ms": 4144,
+   "errors": 0
+  },
+  {
+   "searches": "main",
+   "runtime_hint": false,
+   "version": "after",
+   "right_at_1": 15,
+   "right_in_top_3": 15,
+   "right_at_1_or_built_in": 19,
+   "total": 20,
+   "median_ms": 623,
+   "errors": 0
+  },
+  {
+   "searches": "main",
+   "runtime_hint": true,
+   "version": "before",
+   "right_at_1": 10,
+   "right_in_top_3": 13,
+   "right_at_1_or_built_in": 14,
+   "total": 20,
+   "median_ms": 3573,
+   "errors": 0
+  },
+  {
+   "searches": "main",
+   "runtime_hint": true,
+   "version": "after",
+   "right_at_1": 12,
+   "right_in_top_3": 14,
+   "right_at_1_or_built_in": 16,
+   "total": 20,
+   "median_ms": 313,
+   "errors": 0
+  },
+  {
+   "searches": "heldout",
+   "runtime_hint": false,
+   "version": "before",
+   "right_at_1": 5,
+   "right_in_top_3": 7,
+   "right_at_1_or_built_in": 5,
+   "total": 8,
+   "median_ms": 5050,
+   "errors": 0
+  },
+  {
+   "searches": "heldout",
+   "runtime_hint": false,
+   "version": "after",
+   "right_at_1": 6,
+   "right_in_top_3": 7,
+   "right_at_1_or_built_in": 6,
+   "total": 8,
+   "median_ms": 780,
+   "errors": 0
+  }
+ ],
+ "tasks": [
+  {
+   "id": "retry-backoff",
+   "keywords": [
+    "retry",
+    "exponential backoff"
+   ],
+   "runtime": "node",
+   "good": [
+    "p-retry",
+    "async-retry",
+    "exponential-backoff",
+    "promise-retry",
+    "retry",
+    "cockatiel"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "retry-promise",
+   "keywords": [
+    "retry",
+    "promise"
+   ],
+   "runtime": "node",
+   "good": [
+    "p-retry",
+    "promise-retry",
+    "async-retry",
+    "retry"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "csv-parse",
+   "keywords": [
+    "csv",
+    "parse"
+   ],
+   "runtime": "browser",
+   "good": [
+    "papaparse",
+    "d3-dsv",
+    "csv-parse"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "uuid",
+   "keywords": [
+    "uuid"
+   ],
+   "runtime": null,
+   "good": [
+    "uuid",
+    "nanoid"
+   ],
+   "builtin": [
+    "randomUUID"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "deep-clone",
+   "keywords": [
+    "deep clone"
+   ],
+   "runtime": null,
+   "good": [
+    "rfdc",
+    "klona",
+    "lodash.clonedeep",
+    "clone-deep",
+    "just-clone",
+    "fast-copy"
+   ],
+   "builtin": [
+    "structuredClone"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "debounce",
+   "keywords": [
+    "debounce"
+   ],
+   "runtime": "browser",
+   "good": [
+    "lodash.debounce",
+    "lodash",
+    "debounce",
+    "just-debounce-it",
+    "throttle-debounce",
+    "es-toolkit",
+    "perfect-debounce",
+    "lodash-es"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "schema-validation",
+   "keywords": [
+    "schema",
+    "validation"
+   ],
+   "runtime": null,
+   "good": [
+    "zod",
+    "ajv",
+    "valibot",
+    "joi",
+    "yup",
+    "superstruct",
+    "@sinclair/typebox",
+    "arktype"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "markdown",
+   "keywords": [
+    "markdown",
+    "render"
+   ],
+   "runtime": null,
+   "good": [
+    "marked",
+    "markdown-it",
+    "micromark",
+    "remark",
+    "unified",
+    "showdown",
+    "snarkdown",
+    "remark-parse"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "slugify",
+   "keywords": [
+    "slugify"
+   ],
+   "runtime": null,
+   "good": [
+    "slugify",
+    "@sindresorhus/slugify",
+    "slug"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "date-format",
+   "keywords": [
+    "date",
+    "format"
+   ],
+   "runtime": null,
+   "good": [
+    "date-fns",
+    "dayjs",
+    "luxon"
+   ],
+   "builtin": [
+    "Intl.DateTimeFormat",
+    "toLocaleDateString"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "cli-args",
+   "keywords": [
+    "command line arguments",
+    "parse"
+   ],
+   "runtime": "node",
+   "good": [
+    "commander",
+    "yargs",
+    "minimist",
+    "mri",
+    "meow",
+    "cac",
+    "arg",
+    "citty",
+    "yargs-parser"
+   ],
+   "builtin": [
+    "parseArgs"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "glob",
+   "keywords": [
+    "glob"
+   ],
+   "runtime": "node",
+   "good": [
+    "tinyglobby",
+    "fast-glob",
+    "globby",
+    "glob"
+   ],
+   "builtin": [
+    "fs.glob",
+    "fs/promises glob",
+    "fsPromises.glob"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "sleep",
+   "keywords": [
+    "sleep"
+   ],
+   "runtime": null,
+   "good": [
+    "delay"
+   ],
+   "builtin": [
+    "timers/promises",
+    "setTimeout"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "dotenv",
+   "keywords": [
+    "environment variables",
+    "load"
+   ],
+   "runtime": "node",
+   "good": [
+    "dotenv",
+    "@dotenvx/dotenvx"
+   ],
+   "builtin": [
+    "loadEnvFile",
+    "--env-file"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "concurrency",
+   "keywords": [
+    "concurrency",
+    "limit"
+   ],
+   "runtime": null,
+   "good": [
+    "p-limit",
+    "p-queue",
+    "bottleneck",
+    "async",
+    "p-map"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "http-client",
+   "keywords": [
+    "http client"
+   ],
+   "runtime": "node",
+   "good": [
+    "axios",
+    "got",
+    "ky",
+    "undici",
+    "node-fetch",
+    "ofetch",
+    "superagent"
+   ],
+   "builtin": [
+    "fetch()",
+    "global fetch",
+    "built-in fetch",
+    "native fetch"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "left-pad",
+   "keywords": [
+    "left pad"
+   ],
+   "runtime": null,
+   "good": [
+    "left-pad"
+   ],
+   "builtin": [
+    "padStart"
+   ],
+   "set": "main"
+  },
+  {
+   "id": "rate-limit",
+   "keywords": [
+    "rate limit",
+    "express"
+   ],
+   "runtime": "node",
+   "good": [
+    "express-rate-limit",
+    "rate-limiter-flexible"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "sanitize-html",
+   "keywords": [
+    "sanitize",
+    "html"
+   ],
+   "runtime": "browser",
+   "good": [
+    "dompurify",
+    "isomorphic-dompurify",
+    "sanitize-html",
+    "xss"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "image-resize",
+   "keywords": [
+    "image",
+    "resize"
+   ],
+   "runtime": "node",
+   "good": [
+    "sharp",
+    "jimp"
+   ],
+   "builtin": null,
+   "set": "main"
+  },
+  {
+   "id": "markdown-parser",
+   "keywords": [
+    "markdown",
+    "parser"
+   ],
+   "runtime": null,
+   "good": [
+    "marked",
+    "markdown-it",
+    "micromark",
+    "remark-parse",
+    "mdast-util-from-markdown",
+    "commonmark",
+    "unified",
+    "remark"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "color-contrast",
+   "keywords": [
+    "color",
+    "contrast"
+   ],
+   "runtime": null,
+   "good": [
+    "wcag-contrast",
+    "chroma-js",
+    "colord",
+    "color",
+    "tinycolor2",
+    "polished",
+    "apca-w3",
+    "get-contrast",
+    "color-contrast-checker"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "qr-code",
+   "keywords": [
+    "qr code",
+    "generate"
+   ],
+   "runtime": null,
+   "good": [
+    "qrcode",
+    "qrcode-generator",
+    "qr-code-styling",
+    "uqr",
+    "qr-image",
+    "qrcode-svg"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "cron",
+   "keywords": [
+    "cron",
+    "schedule"
+   ],
+   "runtime": null,
+   "good": [
+    "node-cron",
+    "cron",
+    "node-schedule",
+    "croner",
+    "toad-scheduler",
+    "bree",
+    "agenda"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "yaml",
+   "keywords": [
+    "yaml",
+    "parse"
+   ],
+   "runtime": null,
+   "good": [
+    "yaml",
+    "js-yaml"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "emoji",
+   "keywords": [
+    "emoji",
+    "replace"
+   ],
+   "runtime": null,
+   "good": [
+    "node-emoji",
+    "emoji-regex",
+    "emojibase",
+    "emoji-toolkit",
+    "gemoji"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "pdf",
+   "keywords": [
+    "pdf",
+    "generate"
+   ],
+   "runtime": null,
+   "good": [
+    "pdfkit",
+    "jspdf",
+    "pdf-lib",
+    "pdfmake"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  },
+  {
+   "id": "text-diff",
+   "keywords": [
+    "diff",
+    "text"
+   ],
+   "runtime": null,
+   "good": [
+    "diff",
+    "fast-diff",
+    "diff-match-patch",
+    "diff-sequences"
+   ],
+   "builtin": null,
+   "set": "heldout"
+  }
+ ],
+ "results": [
+  {
+   "set": "main",
+   "task": "retry-backoff",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4968,
+   "picks": [
+    "exponential-backoff",
+    "@fatso83/retry-dynamic-import",
+    "ejmorgan-retry"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: exponential-backoff@3.1.3. 57.4M downloads a week, Apache-2.0, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "retry-backoff",
+   "runtime": false,
+   "variant": "after",
+   "ms": 560,
+   "picks": [
+    "exponential-backoff",
+    "@fatso83/retry-dynamic-import",
+    "ejmorgan-retry"
+   ],
+   "dependents": [
+    933,
+    0,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: exponential-backoff@3.1.3. 57.4M downloads a week, Apache-2.0, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "retry-backoff",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3876,
+   "picks": [
+    "ejmorgan-retry",
+    "promise-fn-retry",
+    "exponential-backoff-generator"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Closest fit: ejmorgan-retry@2.0.0, but it is a small crowd. 6.4K downloads a week, MIT, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "main",
+   "task": "retry-backoff",
+   "runtime": true,
+   "variant": "after",
+   "ms": 565,
+   "picks": [
+    "ejmorgan-retry",
+    "promise-fn-retry",
+    "exponential-backoff-generator"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Closest fit: ejmorgan-retry@2.0.0, but it is a small crowd. 6.4K downloads a week, MIT, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "main",
+   "task": "retry-promise",
+   "runtime": false,
+   "variant": "after",
+   "ms": 833,
+   "picks": [
+    "promise-retry",
+    "p-retry",
+    "@gar/promise-retry"
+   ],
+   "dependents": [
+    4934,
+    913,
+    854
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: promise-retry@2.0.1. 34M downloads a week, MIT, 2 dependencies, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "retry-promise",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3964,
+   "picks": [
+    "p-retry",
+    "promise-retry",
+    "@gar/promise-retry"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-retry@9.0.0. 70.6M downloads a week, MIT, 1 dependency, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "retry-promise",
+   "runtime": true,
+   "variant": "after",
+   "ms": 425,
+   "picks": [
+    "promise-retry",
+    "p-retry",
+    "@gar/promise-retry"
+   ],
+   "dependents": [
+    4934,
+    913,
+    854
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: promise-retry@2.0.1. 34M downloads a week, MIT, 2 dependencies, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "retry-promise",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3968,
+   "picks": [
+    "p-retry",
+    "promise-retry",
+    "@gar/promise-retry"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-retry@9.0.0. 70.6M downloads a week, MIT, 1 dependency, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "csv-parse",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5266,
+   "picks": [
+    "fast-csv",
+    "csv-parse",
+    "papaparse"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: fast-csv@5.0.8. 30.6M downloads a week, MIT, 2 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "csv-parse",
+   "runtime": false,
+   "variant": "after",
+   "ms": 457,
+   "picks": [
+    "csv-parse",
+    "papaparse",
+    "fast-csv"
+   ],
+   "dependents": [
+    2913,
+    2665,
+    1110
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: csv-parse@7.0.3. 28.6M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "csv-parse",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3777,
+   "picks": [
+    "papaparse",
+    "csvtojson",
+    "fast-csv"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: papaparse@5.7.1. 25.7M downloads a week, MIT, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "csv-parse",
+   "runtime": true,
+   "variant": "after",
+   "ms": 457,
+   "picks": [
+    "papaparse",
+    "csvtojson",
+    "csv-parse"
+   ],
+   "dependents": [
+    2665,
+    830,
+    2913
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: papaparse@5.7.1. 25.7M downloads a week, MIT, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "uuid",
+   "runtime": false,
+   "variant": "after",
+   "ms": 1062,
+   "picks": [
+    "uuid",
+    "@smithy/uuid",
+    "uuidv7"
+   ],
+   "dependents": [
+    16423,
+    4034,
+    478
+   ],
+   "builtin": "crypto.randomUUID()",
+   "verdict": "Don't install anything: crypto.randomUUID() is built in. If that is not enough, Scout's pick is uuid@14.0.3."
+  },
+  {
+   "set": "main",
+   "task": "uuid",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4094,
+   "picks": [
+    "uuid",
+    "@smithy/uuid",
+    "@lukeed/uuid"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "crypto.randomUUID()",
+   "verdict": "Don't install anything: crypto.randomUUID() is built in. If that is not enough, Scout's pick is uuid@14.0.3."
+  },
+  {
+   "set": "main",
+   "task": "uuid",
+   "runtime": true,
+   "variant": "after",
+   "ms": 3,
+   "picks": [
+    "uuid",
+    "@smithy/uuid",
+    "uuidv7"
+   ],
+   "dependents": [
+    16423,
+    4034,
+    478
+   ],
+   "builtin": "crypto.randomUUID()",
+   "verdict": "Don't install anything: crypto.randomUUID() is built in. If that is not enough, Scout's pick is uuid@14.0.3."
+  },
+  {
+   "set": "main",
+   "task": "uuid",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3,
+   "picks": [
+    "uuid",
+    "@smithy/uuid",
+    "@lukeed/uuid"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "crypto.randomUUID()",
+   "verdict": "Don't install anything: crypto.randomUUID() is built in. If that is not enough, Scout's pick is uuid@14.0.3."
+  },
+  {
+   "set": "main",
+   "task": "deep-clone",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4833,
+   "picks": [
+    "rfdc",
+    "clone-deep",
+    "klona"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "structuredClone()",
+   "verdict": "Don't install anything: structuredClone() is built in. If that is not enough, Scout's pick is rfdc@1.4.1."
+  },
+  {
+   "set": "main",
+   "task": "deep-clone",
+   "runtime": false,
+   "variant": "after",
+   "ms": 366,
+   "picks": [
+    "rfdc",
+    "clone-deep",
+    "klona"
+   ],
+   "dependents": [
+    2941,
+    1647,
+    1101
+   ],
+   "builtin": "structuredClone()",
+   "verdict": "Don't install anything: structuredClone() is built in. If that is not enough, Scout's pick is rfdc@1.4.1."
+  },
+  {
+   "set": "main",
+   "task": "deep-clone",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "rfdc",
+    "clone-deep",
+    "klona"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "structuredClone()",
+   "verdict": "Don't install anything: structuredClone() is built in. If that is not enough, Scout's pick is rfdc@1.4.1."
+  },
+  {
+   "set": "main",
+   "task": "deep-clone",
+   "runtime": true,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "rfdc",
+    "clone-deep",
+    "klona"
+   ],
+   "dependents": [
+    2941,
+    1647,
+    1101
+   ],
+   "builtin": "structuredClone()",
+   "verdict": "Don't install anything: structuredClone() is built in. If that is not enough, Scout's pick is rfdc@1.4.1."
+  },
+  {
+   "set": "main",
+   "task": "debounce",
+   "runtime": false,
+   "variant": "after",
+   "ms": 752,
+   "picks": [
+    "lodash.debounce",
+    "debounce",
+    "throttle-debounce"
+   ],
+   "dependents": [
+    6775,
+    1985,
+    1641
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: lodash.debounce@4.0.8. 70.2M downloads a week, MIT, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "debounce",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3524,
+   "picks": [
+    "lodash.debounce",
+    "perfect-debounce",
+    "debounce"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: lodash.debounce@4.0.8. 70.2M downloads a week, MIT, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "debounce",
+   "runtime": true,
+   "variant": "after",
+   "ms": 293,
+   "picks": [
+    "use-debounce",
+    "react-debounce-input",
+    "lodash.debounce"
+   ],
+   "dependents": [
+    1009,
+    142,
+    6775
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: use-debounce@10.1.1. 9.8M downloads a week, MIT, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "debounce",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3536,
+   "picks": [
+    "use-debounce",
+    "react-debounce-input",
+    "lodash.debounce"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: use-debounce@10.1.1. 9.8M downloads a week, MIT, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "schema-validation",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5186,
+   "picks": [
+    "json-schema",
+    "joi",
+    "yup"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: json-schema@0.4.0. 91M downloads a week, AFL-2.1 OR BSD-3-Clause, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "schema-validation",
+   "runtime": false,
+   "variant": "after",
+   "ms": 435,
+   "picks": [
+    "joi",
+    "yup",
+    "json-schema"
+   ],
+   "dependents": [
+    8999,
+    4543,
+    3288
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: joi@18.3.2. 32.8M downloads a week, BSD-3-Clause, 7 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "schema-validation",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "json-schema",
+    "joi",
+    "yup"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: json-schema@0.4.0. 91M downloads a week, AFL-2.1 OR BSD-3-Clause, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "schema-validation",
+   "runtime": true,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "joi",
+    "yup",
+    "json-schema"
+   ],
+   "dependents": [
+    8999,
+    4543,
+    3288
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: joi@18.3.2. 32.8M downloads a week, BSD-3-Clause, 7 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "markdown",
+   "runtime": false,
+   "variant": "after",
+   "ms": 771,
+   "picks": [
+    "react-markdown",
+    "vue-markdown-render",
+    "react-render-to-markdown"
+   ],
+   "dependents": [
+    5947,
+    54,
+    2
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: react-markdown@10.1.0. 59.1M downloads a week, MIT, 11 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "markdown",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3919,
+   "picks": [
+    "react-markdown",
+    "vue-markdown-render",
+    "react-render-to-markdown"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: react-markdown@10.1.0. 59.1M downloads a week, MIT, 11 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "markdown",
+   "runtime": true,
+   "variant": "after",
+   "ms": 3,
+   "picks": [
+    "react-markdown",
+    "vue-markdown-render",
+    "react-render-to-markdown"
+   ],
+   "dependents": [
+    5947,
+    54,
+    2
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: react-markdown@10.1.0. 59.1M downloads a week, MIT, 11 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "markdown",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "react-markdown",
+    "vue-markdown-render",
+    "react-render-to-markdown"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: react-markdown@10.1.0. 59.1M downloads a week, MIT, 11 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "slugify",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4894,
+   "picks": [
+    "slugify",
+    "@sindresorhus/slugify",
+    "transliteration"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: slugify@1.6.9. 27.9M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "slugify",
+   "runtime": false,
+   "variant": "after",
+   "ms": 443,
+   "picks": [
+    "slugify",
+    "transliteration",
+    "@sindresorhus/slugify"
+   ],
+   "dependents": [
+    2506,
+    529,
+    507
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: slugify@1.6.9. 27.9M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "slugify",
+   "runtime": true,
+   "variant": "before",
+   "ms": 5,
+   "picks": [
+    "slugify",
+    "@sindresorhus/slugify",
+    "transliteration"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: slugify@1.6.9. 27.9M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "slugify",
+   "runtime": true,
+   "variant": "after",
+   "ms": 3,
+   "picks": [
+    "slugify",
+    "transliteration",
+    "@sindresorhus/slugify"
+   ],
+   "dependents": [
+    2506,
+    529,
+    507
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: slugify@1.6.9. 27.9M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "date-format",
+   "runtime": false,
+   "variant": "after",
+   "ms": 934,
+   "picks": [
+    "fecha",
+    "date-format",
+    "isoformat"
+   ],
+   "dependents": [
+    1737,
+    1271,
+    11
+   ],
+   "builtin": "Intl.DateTimeFormat",
+   "verdict": "Don't install anything: Intl.DateTimeFormat is built in. If that is not enough, Scout's pick is fecha@4.2.3."
+  },
+  {
+   "set": "main",
+   "task": "date-format",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3935,
+   "picks": [
+    "fecha",
+    "date-format",
+    "isoformat"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "Intl.DateTimeFormat",
+   "verdict": "Don't install anything: Intl.DateTimeFormat is built in. If that is not enough, Scout's pick is fecha@4.2.3."
+  },
+  {
+   "set": "main",
+   "task": "date-format",
+   "runtime": true,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "fecha",
+    "date-format",
+    "isoformat"
+   ],
+   "dependents": [
+    1737,
+    1271,
+    11
+   ],
+   "builtin": "Intl.DateTimeFormat",
+   "verdict": "Don't install anything: Intl.DateTimeFormat is built in. If that is not enough, Scout's pick is fecha@4.2.3."
+  },
+  {
+   "set": "main",
+   "task": "date-format",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3,
+   "picks": [
+    "fecha",
+    "date-format",
+    "isoformat"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "Intl.DateTimeFormat",
+   "verdict": "Don't install anything: Intl.DateTimeFormat is built in. If that is not enough, Scout's pick is fecha@4.2.3."
+  },
+  {
+   "set": "main",
+   "task": "cli-args",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5390,
+   "picks": [
+    "command-line-parser",
+    "dargs",
+    "yaml"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "util.parseArgs()",
+   "verdict": "Don't install anything: util.parseArgs() is built in to Node. If that is not enough, Scout's pick is command-line-parser@0.2.10."
+  },
+  {
+   "set": "main",
+   "task": "cli-args",
+   "runtime": false,
+   "variant": "after",
+   "ms": 647,
+   "picks": [
+    "command-line-parser",
+    "dargs",
+    "yaml"
+   ],
+   "dependents": [
+    null,
+    911,
+    38909
+   ],
+   "builtin": "util.parseArgs()",
+   "verdict": "Don't install anything: util.parseArgs() is built in to Node. If that is not enough, Scout's pick is command-line-parser@0.2.10."
+  },
+  {
+   "set": "main",
+   "task": "cli-args",
+   "runtime": true,
+   "variant": "before",
+   "ms": 4660,
+   "picks": [
+    "command-line-parser",
+    "dargs",
+    "yaml"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "util.parseArgs()",
+   "verdict": "Don't install anything: util.parseArgs() is built in to Node. If that is not enough, Scout's pick is command-line-parser@0.2.10."
+  },
+  {
+   "set": "main",
+   "task": "cli-args",
+   "runtime": true,
+   "variant": "after",
+   "ms": 468,
+   "picks": [
+    "command-line-parser",
+    "dargs",
+    "yaml"
+   ],
+   "dependents": [
+    null,
+    911,
+    38909
+   ],
+   "builtin": "util.parseArgs()",
+   "verdict": "Don't install anything: util.parseArgs() is built in to Node. If that is not enough, Scout's pick is command-line-parser@0.2.10."
+  },
+  {
+   "set": "main",
+   "task": "glob",
+   "runtime": false,
+   "variant": "after",
+   "ms": 600,
+   "picks": [
+    "fast-glob",
+    "is-glob",
+    "picomatch"
+   ],
+   "dependents": [
+    15424,
+    14488,
+    12455
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: fast-glob@3.3.3. 208M downloads a week, MIT, 5 dependencies, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "glob",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3928,
+   "picks": [
+    "minimatch",
+    "picomatch",
+    "glob"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: minimatch@11.0.9. 972M downloads a week, BlueOak-1.0.0, 2 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "glob",
+   "runtime": true,
+   "variant": "after",
+   "ms": 468,
+   "picks": [
+    "fast-glob",
+    "is-glob",
+    "micromatch"
+   ],
+   "dependents": [
+    15424,
+    14488,
+    12399
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: fast-glob@3.3.3. 208M downloads a week, MIT, 5 dependencies, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "glob",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3611,
+   "picks": [
+    "fdir",
+    "is-glob",
+    "micromatch"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: fdir@6.5.0. 294M downloads a week, MIT, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "sleep",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5231,
+   "picks": [
+    "atomic-sleep",
+    "sleep-promise",
+    "caffeinate"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "setTimeout() in a Promise",
+   "verdict": "Don't install anything: setTimeout() in a Promise is built in. If that is not enough, Scout's pick is atomic-sleep@1.0.0."
+  },
+  {
+   "set": "main",
+   "task": "sleep",
+   "runtime": false,
+   "variant": "after",
+   "ms": 400,
+   "picks": [
+    "atomic-sleep",
+    "sleep-promise",
+    "caffeinate"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "setTimeout() in a Promise",
+   "verdict": "Don't install anything: setTimeout() in a Promise is built in. If that is not enough, Scout's pick is atomic-sleep@1.0.0."
+  },
+  {
+   "set": "main",
+   "task": "sleep",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "atomic-sleep",
+    "sleep-promise",
+    "caffeinate"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "setTimeout() in a Promise",
+   "verdict": "Don't install anything: setTimeout() in a Promise is built in. If that is not enough, Scout's pick is atomic-sleep@1.0.0."
+  },
+  {
+   "set": "main",
+   "task": "sleep",
+   "runtime": true,
+   "variant": "after",
+   "ms": 3,
+   "picks": [
+    "atomic-sleep",
+    "sleep-promise",
+    "caffeinate"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "setTimeout() in a Promise",
+   "verdict": "Don't install anything: setTimeout() in a Promise is built in. If that is not enough, Scout's pick is atomic-sleep@1.0.0."
+  },
+  {
+   "set": "main",
+   "task": "dotenv",
+   "runtime": false,
+   "variant": "after",
+   "ms": 896,
+   "picks": [
+    "dotenv",
+    "dotenv-flow",
+    "dotenv-safe"
+   ],
+   "dependents": [
+    55716,
+    406,
+    197
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: dotenv@18.0.10. 269M downloads a week, BSD-2-Clause, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "dotenv",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3809,
+   "picks": [
+    "dotenv",
+    "dotenv-flow",
+    "dotenv-safe"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: dotenv@18.0.10. 269M downloads a week, BSD-2-Clause, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "dotenv",
+   "runtime": true,
+   "variant": "after",
+   "ms": 356,
+   "picks": [
+    "dotenv",
+    "dotenv-flow",
+    "dotenv-safe"
+   ],
+   "dependents": [
+    55716,
+    406,
+    197
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: dotenv@18.0.10. 269M downloads a week, BSD-2-Clause, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "dotenv",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3884,
+   "picks": [
+    "dotenv",
+    "dotenv-flow",
+    "dotenv-safe"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: dotenv@18.0.10. 269M downloads a week, BSD-2-Clause, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "main",
+   "task": "concurrency",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5164,
+   "picks": [
+    "p-limit",
+    "async-limiter",
+    "tiny-async-pool"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-limit@7.3.3. 450M downloads a week, MIT, 1 dependency, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "concurrency",
+   "runtime": false,
+   "variant": "after",
+   "ms": 459,
+   "picks": [
+    "p-limit",
+    "async-limiter",
+    "tiny-async-pool"
+   ],
+   "dependents": [
+    3295,
+    1723,
+    156
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-limit@7.3.3. 450M downloads a week, MIT, 1 dependency, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "concurrency",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "p-limit",
+    "async-limiter",
+    "tiny-async-pool"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-limit@7.3.3. 450M downloads a week, MIT, 1 dependency, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "concurrency",
+   "runtime": true,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "p-limit",
+    "async-limiter",
+    "tiny-async-pool"
+   ],
+   "dependents": [
+    3295,
+    1723,
+    156
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: p-limit@7.3.3. 450M downloads a week, MIT, 1 dependency, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "main",
+   "task": "http-client",
+   "runtime": false,
+   "variant": "after",
+   "ms": 1027,
+   "picks": [
+    "axios",
+    "gaxios",
+    "needle"
+   ],
+   "dependents": [
+    90337,
+    8964,
+    1835
+   ],
+   "builtin": "fetch()",
+   "verdict": "Don't install anything: fetch() is built in. If that is not enough, Scout's pick is axios@1.21.1."
+  },
+  {
+   "set": "main",
+   "task": "http-client",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4092,
+   "picks": [
+    "gaxios",
+    "axios",
+    "@opentelemetry/instrumentation-http"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "fetch()",
+   "verdict": "Don't install anything: fetch() is built in. If that is not enough, Scout's pick is gaxios@8.3.3."
+  },
+  {
+   "set": "main",
+   "task": "http-client",
+   "runtime": true,
+   "variant": "after",
+   "ms": 751,
+   "picks": [
+    "axios",
+    "@opentelemetry/instrumentation-http",
+    "@opentelemetry/instrumentation-undici"
+   ],
+   "dependents": [
+    90337,
+    95,
+    94
+   ],
+   "builtin": "fetch()",
+   "verdict": "Don't install anything: fetch() is built in. If that is not enough, Scout's pick is axios@1.21.1."
+  },
+  {
+   "set": "main",
+   "task": "http-client",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3966,
+   "picks": [
+    "axios",
+    "@opentelemetry/instrumentation-http",
+    "@opentelemetry/instrumentation-undici"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "fetch()",
+   "verdict": "Don't install anything: fetch() is built in. If that is not enough, Scout's pick is axios@1.21.1."
+  },
+  {
+   "set": "main",
+   "task": "left-pad",
+   "runtime": false,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "pad-left",
+    "lpad",
+    "@stdlib/string-left-pad"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "String.prototype.padStart()",
+   "verdict": "Don't install anything: String.prototype.padStart() is built in. If that is not enough, Scout's pick is pad-left@2.1.0."
+  },
+  {
+   "set": "main",
+   "task": "left-pad",
+   "runtime": false,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "pad-left",
+    "lpad",
+    "@stdlib/string-left-pad"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "String.prototype.padStart()",
+   "verdict": "Don't install anything: String.prototype.padStart() is built in. If that is not enough, Scout's pick is pad-left@2.1.0."
+  },
+  {
+   "set": "main",
+   "task": "left-pad",
+   "runtime": true,
+   "variant": "before",
+   "ms": 2,
+   "picks": [
+    "pad-left",
+    "lpad",
+    "@stdlib/string-left-pad"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "String.prototype.padStart()",
+   "verdict": "Don't install anything: String.prototype.padStart() is built in. If that is not enough, Scout's pick is pad-left@2.1.0."
+  },
+  {
+   "set": "main",
+   "task": "left-pad",
+   "runtime": true,
+   "variant": "after",
+   "ms": 2,
+   "picks": [
+    "pad-left",
+    "lpad",
+    "@stdlib/string-left-pad"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": "String.prototype.padStart()",
+   "verdict": "Don't install anything: String.prototype.padStart() is built in. If that is not enough, Scout's pick is pad-left@2.1.0."
+  },
+  {
+   "set": "main",
+   "task": "rate-limit",
+   "runtime": false,
+   "variant": "after",
+   "ms": 1068,
+   "picks": [
+    "express-rate-limit",
+    "@nestjs/throttler",
+    "express-slow-down"
+   ],
+   "dependents": [
+    6689,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: express-rate-limit@8.7.4. 97.9M downloads a week, MIT, 2 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "rate-limit",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3886,
+   "picks": [
+    "express-rate-limit",
+    "@nestjs/throttler",
+    "express-slow-down"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: express-rate-limit@8.7.4. 97.9M downloads a week, MIT, 2 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "rate-limit",
+   "runtime": true,
+   "variant": "after",
+   "ms": 633,
+   "picks": [
+    "express-rate-limit",
+    "@nestjs/throttler",
+    "express-slow-down"
+   ],
+   "dependents": [
+    6689,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: express-rate-limit@8.7.4. 97.9M downloads a week, MIT, 2 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "rate-limit",
+   "runtime": true,
+   "variant": "before",
+   "ms": 4086,
+   "picks": [
+    "express-rate-limit",
+    "@nestjs/throttler",
+    "express-slow-down"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: express-rate-limit@8.7.4. 97.9M downloads a week, MIT, 2 dependencies, no known direct advisories. Go outside."
+  },
+  {
+   "set": "main",
+   "task": "sanitize-html",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4832,
+   "picks": [
+    "sanitize-html",
+    "xss",
+    "@esri/arcgis-html-sanitizer"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sanitize-html@2.18.2. 18.2M downloads a week, MIT, 6 dependencies, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "sanitize-html",
+   "runtime": false,
+   "variant": "after",
+   "ms": 402,
+   "picks": [
+    "sanitize-html",
+    "xss",
+    "@esri/arcgis-html-sanitizer"
+   ],
+   "dependents": [
+    2250,
+    1255,
+    33
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sanitize-html@2.18.2. 18.2M downloads a week, MIT, 6 dependencies, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "main",
+   "task": "sanitize-html",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3824,
+   "picks": [
+    "neosanitize",
+    "react-sanitized-html",
+    "sanitize-html"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Closest fit: neosanitize@0.5.0, but it is a small crowd. 8.4K downloads a week, MIT, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "main",
+   "task": "sanitize-html",
+   "runtime": true,
+   "variant": "after",
+   "ms": 384,
+   "picks": [
+    "neosanitize",
+    "react-sanitized-html",
+    "sanitize-html"
+   ],
+   "dependents": [
+    null,
+    null,
+    2250
+   ],
+   "builtin": null,
+   "verdict": "Closest fit: neosanitize@0.5.0, but it is a small crowd. 8.4K downloads a week, MIT, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "main",
+   "task": "image-resize",
+   "runtime": false,
+   "variant": "after",
+   "ms": 989,
+   "picks": [
+    "sharp",
+    "pica",
+    "@jsquash/resize"
+   ],
+   "dependents": [
+    13515,
+    222,
+    30
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sharp@0.35.5. 170M downloads a week, Apache-2.0, 3 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "image-resize",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4194,
+   "picks": [
+    "sharp",
+    "pica",
+    "@jsquash/resize"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sharp@0.35.5. 170M downloads a week, Apache-2.0, 3 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "image-resize",
+   "runtime": true,
+   "variant": "after",
+   "ms": 334,
+   "picks": [
+    "sharp",
+    "@vouchington/image-resize",
+    "pica"
+   ],
+   "dependents": [
+    13515,
+    0,
+    222
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sharp@0.35.5. 170M downloads a week, Apache-2.0, 3 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "main",
+   "task": "image-resize",
+   "runtime": true,
+   "variant": "before",
+   "ms": 3794,
+   "picks": [
+    "sharp",
+    "@vouchington/image-resize",
+    "pica"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: sharp@0.35.5. 170M downloads a week, Apache-2.0, 3 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "heldout",
+   "task": "markdown-parser",
+   "runtime": false,
+   "variant": "before",
+   "ms": 6292,
+   "picks": [
+    "marked",
+    "micromark",
+    "markdown-it"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: marked@18.2.1. 132M downloads a week, MIT, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "heldout",
+   "task": "markdown-parser",
+   "runtime": false,
+   "variant": "after",
+   "ms": 595,
+   "picks": [
+    "marked",
+    "markdown-it",
+    "micromark"
+   ],
+   "dependents": [
+    7920,
+    5674,
+    1900
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: marked@18.2.1. 132M downloads a week, MIT, no known direct advisories. Scout has never written one of these."
+  },
+  {
+   "set": "heldout",
+   "task": "color-contrast",
+   "runtime": false,
+   "variant": "after",
+   "ms": 991,
+   "picks": [
+    "@csstools/postcss-contrast-color-function",
+    "wcag-contrast",
+    "@flighthq/color"
+   ],
+   "dependents": [
+    3,
+    133,
+    53
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: @csstools/postcss-contrast-color-function@3.0.17. 3M downloads a week, MIT-0, 5 dependencies, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "heldout",
+   "task": "color-contrast",
+   "runtime": false,
+   "variant": "before",
+   "ms": 3901,
+   "picks": [
+    "@csstools/postcss-contrast-color-function",
+    "wcag-contrast",
+    "color-contrast-checker"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: @csstools/postcss-contrast-color-function@3.0.17. 3M downloads a week, MIT-0, 5 dependencies, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "heldout",
+   "task": "qr-code",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5336,
+   "picks": [
+    "qrcode.react",
+    "uqr",
+    "qrcode-generator"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: qrcode.react@4.2.0. 14.5M downloads a week, ISC, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "heldout",
+   "task": "qr-code",
+   "runtime": false,
+   "variant": "after",
+   "ms": 506,
+   "picks": [
+    "uqr",
+    "qrcode.react",
+    "qrcode-generator"
+   ],
+   "dependents": [
+    359,
+    null,
+    613
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: uqr@0.1.3. 10.9M downloads a week, MIT, no known direct advisories. Go outside."
+  },
+  {
+   "set": "heldout",
+   "task": "cron",
+   "runtime": false,
+   "variant": "after",
+   "ms": 884,
+   "picks": [
+    "node-cron",
+    "node-schedule",
+    "@nestjs/schedule"
+   ],
+   "dependents": [
+    2768,
+    2074,
+    259
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: node-cron@4.6.0. 7M downloads a week, ISC, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "heldout",
+   "task": "cron",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4148,
+   "picks": [
+    "node-cron",
+    "@nestjs/schedule",
+    "node-schedule"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: node-cron@4.6.0. 7M downloads a week, ISC, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "heldout",
+   "task": "yaml",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5528,
+   "picks": [
+    "js-yaml",
+    "yaml",
+    "confbox"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: js-yaml@5.5.0. 395M downloads a week, MIT, 1 dependency, no known direct advisories. Put the keyboard down."
+  },
+  {
+   "set": "heldout",
+   "task": "yaml",
+   "runtime": false,
+   "variant": "after",
+   "ms": 676,
+   "picks": [
+    "yaml",
+    "js-yaml",
+    "confbox"
+   ],
+   "dependents": [
+    38909,
+    36973,
+    478
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: yaml@2.9.1. 320M downloads a week, ISC, no known direct advisories. Someone already wrote it."
+  },
+  {
+   "set": "heldout",
+   "task": "emoji",
+   "runtime": false,
+   "variant": "after",
+   "ms": 1008,
+   "picks": [
+    "@babel/helper-replace-supers",
+    "mdast-util-find-and-replace",
+    "uri-js-replace"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Partial match: @babel/helper-replace-supers@8.0.1 mentions \"replace\" but not \"emoji\". 107M downloads a week, MIT, 3 dependencies, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "heldout",
+   "task": "emoji",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4134,
+   "picks": [
+    "@babel/helper-replace-supers",
+    "mdast-util-find-and-replace",
+    "uri-js-replace"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Partial match: @babel/helper-replace-supers@8.0.1 mentions \"replace\" but not \"emoji\". 107M downloads a week, MIT, 3 dependencies, no known direct advisories. Read its README before you trust it."
+  },
+  {
+   "set": "heldout",
+   "task": "pdf",
+   "runtime": false,
+   "variant": "before",
+   "ms": 5912,
+   "picks": [
+    "pdfkit",
+    "@react-pdf/pdfkit",
+    "@foliojs-fork/pdfkit"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: pdfkit@0.20.2. 17.8M downloads a week, MIT, 6 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "heldout",
+   "task": "pdf",
+   "runtime": false,
+   "variant": "after",
+   "ms": 565,
+   "picks": [
+    "pdfkit",
+    "officeparser",
+    "@react-pdf/pdfkit"
+   ],
+   "dependents": [
+    588,
+    125,
+    45
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: pdfkit@0.20.2. 17.8M downloads a week, MIT, 6 dependencies, no known direct advisories. That's the whole job."
+  },
+  {
+   "set": "heldout",
+   "task": "text-diff",
+   "runtime": false,
+   "variant": "after",
+   "ms": 1006,
+   "picks": [
+    "diff",
+    "fast-diff",
+    "jsondiffpatch"
+   ],
+   "dependents": [
+    7993,
+    1187,
+    339
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: diff@9.0.0. 190M downloads a week, BSD-3-Clause, no known direct advisories. Go outside."
+  },
+  {
+   "set": "heldout",
+   "task": "text-diff",
+   "runtime": false,
+   "variant": "before",
+   "ms": 4764,
+   "picks": [
+    "diff",
+    "fast-diff",
+    "jsondiffpatch"
+   ],
+   "dependents": [
+    null,
+    null,
+    null
+   ],
+   "builtin": null,
+   "verdict": "Scout's pick: diff@9.0.0. 190M downloads a week, BSD-3-Clause, no known direct advisories. Go outside."
+  }
+ ],
+ "limits": [
+  "One run on live npm and deps.dev data; picks can change as upstream data changes.",
+  "Tool output only; what Claude finally recommends after reading it was not measured here.",
+  "The runtime hint still ranks packages that declare a runtime above more popular ones that do not; this change does not address it."
+ ]
+}
