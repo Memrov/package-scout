@@ -1,7 +1,7 @@
 import { object, type Json } from './package-sources.ts';
 import { adoptionTier } from './relevance.ts';
 
-const RELEVANCE = ['keyword_match_fraction', 'package_role_preference', 'descriptive_match_fraction', 'runtime_preference', 'adoption_tier'];
+const RELEVANCE = ['keyword_match_fraction', 'keyword_specificity', 'package_role_preference', 'descriptive_match_fraction', 'runtime_preference', 'adoption_tier'];
 
 export const RANKING_PROFILES = {
   vibe: {
@@ -40,7 +40,7 @@ export const SCORING = {
   tie_breaker: 'Original discovery position, then package name.',
   scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, required: false, role: 'optional tie-breaker after relevance and observed adoption', methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
   limits: ['Profile priorities are product policies, not empirically calibrated weights.', 'Dependency counts and declared install hooks are footprint facts, not measured integration effort.', 'Release dates alone do not establish maintenance health; LFX Health Score is not computed.', 'Scorecard describes repository security practices, not package correctness or feature fit.'],
-  discovery: 'Keyword coverage, primary-library role hints, descriptive matches, runtime evidence, then weekly-download orders of magnitude precede profile preferences. Missing runtime declarations remain eligible and unverified. Use get_package_details for an exact package name.',
+  discovery: 'Keyword coverage, then matched-concept specificity using smoothed inverse document frequency in the retrieved pool, primary-library role hints, descriptive matches, runtime evidence and adoption tier precede profile preferences. Specificity is retrieval evidence, not a quality or fit score. Missing runtime declarations remain eligible and unverified.',
 };
 
 export function exclusionReasons(candidate: Json, args: Json): string[] {
@@ -82,6 +82,7 @@ export function qualityEvidence(candidate: Json, position: number, profile: Rank
   };
   const signals = {
     keyword_match_fraction: observedNumber(candidate.keyword_match_fraction, 1),
+    keyword_specificity: observedNumber(candidate.keyword_specificity, 1),
     package_role_preference: observedNumber(candidate.package_role_preference, 1),
     descriptive_match_fraction: observedNumber(candidate.descriptive_match_fraction, 1),
     runtime_preference: observedNumber(candidate.runtime_preference, 2),

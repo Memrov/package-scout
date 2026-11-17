@@ -434,6 +434,16 @@ test('multiword operation phrases retain direction instead of matching a reverse
   assert.deepEqual(matchKeywords({ description: 'Cross browser Speech Synthesis' }, ['speech synthesis']), ['speech synthesis']);
 });
 
+test('soft matching keeps a distinctive task term ahead of generic high-download category matches', async () => {
+  const mock = upstream([
+    ...Array.from({ length: 11 }, (_, i) => ({ name: `image-utility-${i}`, downloads: 10000000, description: 'Image dimensions and processing' })),
+    { name: 'nsfwjs', downloads: 80000, description: 'Detect NSFW content client-side' },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['image', 'nsfw'] });
+  assert.equal((result.packages as Json[])[0].name, 'nsfwjs');
+  assert.equal(result.candidates_inspected, 10);
+});
+
 test('legacy registry names remain inspectable and an unsupported search row cannot abort the query', async () => {
   const mock = upstream(['Sentimental', '@_linked/translation', 'nodeQuery', 'DOMArray'].map(name => ({ name, downloads: 10000, description: 'Useful text utility' })));
   const fetchImpl: typeof fetch = async (url, init) => {

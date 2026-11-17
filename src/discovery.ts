@@ -80,13 +80,15 @@ function sourceIds(version: Json | null): string[] {
   }))].slice(0, 2);
 }
 
-function relevance(metadata: Json, args: Json): Json {
+function relevance(metadata: Json, args: Json, weights?: number[]): Json {
   const keywords = args.keywords as string[];
   const matches = matchKeywords(metadata, keywords);
+  const importance = weights ?? keywords.map(() => 1);
   const runtime = runtimeEvidence(metadata, String(args.runtime));
   const role = roleEvidence(metadata, keywords);
   return {
     keyword_match_fraction: matches.length / keywords.length,
+    keyword_specificity: importance.reduce((sum, weight, i) => sum + (matches.includes(keywords[i]) ? weight : 0), 0) / importance.reduce((sum, weight) => sum + weight, 0),
     descriptive_match_fraction: matchKeywords({ name: metadata.name, description: metadata.description }, keywords).length / keywords.length,
     package_role_preference: role.preference, runtime_preference: runtime.preference,
     runtime_evidence: runtime, role_evidence: role,
@@ -198,6 +200,9 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
     }).sort((a, b) => (args.runtime === 'browser' ? Number(browserDeclaration(b) !== null) - Number(browserDeclaration(a) !== null) : 0) || matchKeywords(b, keywords).length - matchKeywords(a, keywords).length)
       .slice(0, fallbackStatus === 'not_needed' ? 3 : 2);
     const pool: Json[] = [...hints.map(item => ({ package: item, discovery_source: 'catalog_hint' })), ...native.map<Json>(item => ({ ...item, discovery_source: 'npm' }))];
+    const coverage = pool.map(candidate => matchKeywords(object(candidate.package), keywords));
+    // Smoothed inverse document frequency in this pool: rare task concepts beat generic partial matches.
+    const weights = keywords.map(term => 1 + Math.log((pool.length + 1) / (coverage.filter(matches => matches.includes(term)).length + 1)));
     const manifests: Json[] = [];
     const searchByName = new Map<string, Json>();
     const positions = new Map<string, number>();
@@ -213,7 +218,7 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
       if (reason) { rejected([reason]); continue; }
       const weekly = candidate.downloads && typeof candidate.downloads === 'object' ? object(candidate.downloads).weekly : null;
       const metadata = object(candidate.package);
-      const evidence = relevance(metadata, args);
+      const evidence = relevance(metadata, args, weights);
       candidates.push({ ...candidate, quality: qualityEvidence({ ...evidence, weekly_downloads: weekly }, positions.get(name)!, profile, new Date().toISOString()) });
     }
     const inspected = candidates.sort(compareCandidates).slice(0, 10);
@@ -239,7 +244,7 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
     const ranked = manifests.flatMap<Json>(manifest => {
       const candidate = summarize(manifest, versions.get(manifest.name as string) ?? null, projects, checkedAt, searchByName.get(manifest.name as string));
       const match = searchByName.get(manifest.name as string);
-      Object.assign(candidate, relevance(manifest, args));
+      Object.assign(candidate, relevance(manifest, args, weights));
       candidate.relevance_evidence = { ...object(candidate.relevance_evidence), discovery_source: match?.discovery_source };
       const reasons = exclusionReasons(candidate, args);
       if (reasons.length) { rejected(reasons); return []; }
@@ -257,7 +262,7 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
     result = { packages, returned: packages.length, candidates_considered: pool.length, candidates_inspected: inspected.length, filtered_counts: filteredCounts,
       search: { niche: args.niche, keyword_policy: args.match_all_keywords ? 'strict_all' : 'soft', fallback_used: fallbackStatus !== 'not_needed', fallback_status: fallbackStatus,
         interpretation: 'Candidates are metadata matches, not verified task solutions. Partial matches show unmatched concepts; inspect documentation before choosing. filtered_counts reports exclusions within the bounded candidate pool, not all npm.' },
-      ordering: `relevance, library role, runtime evidence and adoption tier before ${profile} preferences; one result per known repository`,
+      ordering: `keyword coverage and specificity, library role, runtime evidence and adoption tier before ${profile} preferences; one result per known repository`,
       scoring: { version: SCORING.version, method: SCORING.method, aggregate_score: null, profile, priorities: SCORING.profiles[profile].priorities, discovery: SCORING.discovery, scorecard: SCORING.scorecard, limits: SCORING.limits }, constraints: args };
     if (packages.length < (args.limit as number) && !args.niche && (args.min_weekly_downloads as number) > 0) {
       const retry: Json = { keywords: args.keywords, runtime: args.runtime, niche: true };

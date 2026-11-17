@@ -42,7 +42,7 @@ Search starts with ordinary npm text retrieval. If fewer than three records surv
 
 Existing uppercase names and scoped names beginning with a dot or underscore can be inspected without rewriting their identity. Malformed or unsupported search rows are skipped individually and counted in `filtered_counts.unsupported_search_record`; one row cannot abort the whole search. Other exclusion counts describe this bounded pool, not all packages in npm.
 
-Ranking version 3 is implemented in `src/quality.ts`. All profiles first compare keyword coverage, package-role hints, matches in names/descriptions, runtime evidence, and weekly-download orders of magnitude. Profile preferences then break ties:
+Ranking version 3 is implemented in `src/quality.ts`. All profiles first compare keyword coverage, matched-concept specificity, package-role hints, matches in names/descriptions, runtime evidence, and weekly-download orders of magnitude. Specificity uses smoothed inverse document frequency within the retrieved pool: a rarer task concept wins a partial-match tie over a generic category word. This is text-retrieval evidence, not a functional-fit or quality score. Profile preferences then break ties:
 
 | Profile | Priorities after the shared discovery criteria |
 | --- | --- |
