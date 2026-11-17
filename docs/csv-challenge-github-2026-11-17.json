@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "title": "The CSV challenge: ten legal CSV files against hand-rolled parsers and Scout's picks",
+  "status": "succeeded",
+  "package": {
+    "name": "papaparse",
+    "version": "5.7.1"
+  },
+  "installed_package": {
+    "name": "papaparse",
+    "version": "5.7.1"
+  },
+  "image": "node:24-bookworm",
+  "image_digests": [
+    "node@sha256:9d266751ca3d7fdbe651c878ffd5ad0a42fed49a18c283509267c97f025b7496"
+  ],
+  "evaluation_sha256": "55c4b941d8ac864e53ea855feaf44f363b5ca59d2435d4adcc03a2a1c1685a36",
+  "started_at": "2026-11-17T05:14:12.589Z",
+  "completed_at": "2026-11-17T05:14:30.403Z",
+  "duration_ms": 17814,
+  "stages": [
+    {
+      "name": "image-pull",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 16314,
+      "log": "logs/image-pull.log"
+    },
+    {
+      "name": "image-inspect",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 19,
+      "log": "logs/image-inspect.log"
+    },
+    {
+      "name": "container-create",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 27,
+      "log": "logs/container-create.log"
+    },
+    {
+      "name": "container-start",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 169,
+      "log": "logs/container-start.log"
+    },
+    {
+      "name": "install",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 1000,
+      "log": "logs/install.log"
+    },
+    {
+      "name": "evaluation",
+      "exit_code": 0,
+      "signal": null,
+      "timed_out": false,
+      "duration_ms": 133,
+      "log": "logs/evaluation.log"
+    }
+  ],
+  "evaluation_results": {
+    "node": "v24.22.3",
+    "files": [
+      {
+        "id": "plain",
+        "rule": "The easy one"
+      },
+      {
+        "id": "quoted-comma",
+        "rule": "RFC 4180, rule 6"
+      },
+      {
+        "id": "escaped-quote",
+        "rule": "RFC 4180, rule 7"
+      },
+      {
+        "id": "newline-in-field",
+        "rule": "RFC 4180, rule 6"
+      },
+      {
+        "id": "crlf",
+        "rule": "RFC 4180, rule 1"
+      },
+      {
+        "id": "no-trailing-newline",
+        "rule": "RFC 4180, rule 2"
+      },
+      {
+        "id": "empty-fields",
+        "rule": "Real exports"
+      },
+      {
+        "id": "trailing-blank-line",
+        "rule": "Real exports"
+      },
+      {
+        "id": "byte-order-mark",
+        "rule": "Real exports"
+      },
+      {
+        "id": "spaces-kept",
+        "rule": "RFC 4180, rule 4"
+      }
+    ],
+    "results": [
+      {
+        "id": "split",
+        "label": "The quick way: `split(\",\")`",
+        "kind": "hand-rolled",
+        "lines": 5,
+        "passed": 6,
+        "failed": [
+          {
+            "id": "quoted-comma",
+            "reason": "wrong rows"
+          },
+          {
+            "id": "escaped-quote",
+            "reason": "wrong rows"
+          },
+          {
+            "id": "newline-in-field",
+            "reason": "wrong rows"
+          },
+          {
+            "id": "crlf",
+            "reason": "wrong rows"
+          }
+        ]
+      },
+      {
+        "id": "regex",
+        "label": "The clever way: a regex",
+        "kind": "hand-rolled",
+        "lines": 7,
+        "passed": 9,
+        "failed": [
+          {
+            "id": "newline-in-field",
+            "reason": "wrong rows"
+          }
+        ]
+      },
+      {
+        "id": "state-machine",
+        "label": "The careful way: a state machine",
+        "kind": "hand-rolled",
+        "lines": 35,
+        "passed": 10,
+        "failed": []
+      },
+      {
+        "id": "papaparse",
+        "label": "`papaparse`",
+        "kind": "scout",
+        "lines": 2,
+        "version": "5.7.1",
+        "passed": 10,
+        "failed": []
+      },
+      {
+        "id": "csv-parse",
+        "label": "`csv-parse`",
+        "kind": "scout",
+        "lines": 2,
+        "version": "7.0.3",
+        "passed": 10,
+        "failed": []
+      },
+      {
+        "id": "fast-csv",
+        "label": "`fast-csv`",
+        "kind": "scout",
+        "lines": 8,
+        "version": "5.0.8",
+        "passed": 10,
+        "failed": []
+      }
+    ]
+  },
+  "collection_warnings": [],
+  "limitations": [
+    "Execution evidence applies only to this script, package version, inputs, and environment.",
+    "Agent-produced assertions and results are not an independent security or correctness certification."
+  ],
+  "source": {
+    "repository": "Memrov/package-scout",
+    "commit_sha": "bf24e92046cabcb5ed771939c5538b0a2f2fe5f5",
+    "run_url": "https://github.com/Memrov/package-scout/actions/runs/44022644522",
+    "run_attempt": "1"
+  }
+}

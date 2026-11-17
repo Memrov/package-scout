@@ -17,6 +17,8 @@ This folder holds ten small CSV files. Seven exercise a rule from [RFC 4180](htt
 
 Recorded on 2026-11-17 with Node 22.23.4. The raw record is [results.json](results.json), and the test suite fails if the hand-rolled scores drift from it.
 
+The same packed challenge [passed on GitHub Actions](https://github.com/Memrov/package-scout/actions/runs/44022644522) on 2026-11-17 with Node 24.22.3. The [saved evaluation report](../../docs/csv-challenge-github-2026-11-17.json) preserves the scores, container digest, evaluation hash and source run. Full logs are attached to that run as an artifact (retained for seven days).
+
 ## What a failure looks like
 
 Neither hand-rolled parser throws. They return wrong rows and carry on.

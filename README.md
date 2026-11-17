@@ -25,7 +25,7 @@ We ran ten small, legal CSV files through three hand-rolled parsers and the pack
 
 Neither failing parser throws an error. The quick one files Jane Smith's email under a column named `undefined`. The clever one turns two customers into three.
 
-The files, the method and the raw results are in [the CSV challenge](challenges/csv). Think your agent's parser does better? `npm run challenge -- ./its-parser.mjs`.
+The files, the method and the raw results are in [the CSV challenge](challenges/csv), with a [passing public GitHub Actions run](https://github.com/Memrov/package-scout/actions/runs/44022644522). Think your agent's parser does better? `npm run challenge -- ./its-parser.mjs`.
 
 ## Meet Scout
 
@@ -38,6 +38,8 @@ Scout is lazy, with standards:
 - **No AI inside.** Scout is a lookup. Your agent brings the intelligence; Scout brings the facts.
 
 ## Try it in a minute
+
+The maintained [hosted copy](https://package-scout-npm-20261116.dscott2017.chatgpt.site) uses Sites sign-in and is currently restricted to accounts granted access. In ChatGPT or Codex, use the existing Package Scout plugin. To run your own copy without hosted access, follow the setup below.
 
 Run it. You need Node 24.3 or newer.
 
@@ -64,7 +66,7 @@ That is Claude Code. Any other MCP client can point at the same `/mcp` address, 
 }
 ```
 
-Using a hosted copy? Put its address in place of `http://127.0.0.1:8787`.
+For your own hosted copy, put its address in place of `http://127.0.0.1:8787` and configure your client's authentication for that host.
 
 Now ask your agent for something it would normally build from scratch:
 

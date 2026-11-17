@@ -303,7 +303,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap}
       <div class="tip" id="tip" role="presentation" hidden></div>
     </div>
     <p class="aside">Neither hand-rolled parser throws an error. The quick one files Jane Smith's email under a column named <code>undefined</code>. The clever one turns two customers into three.</p>
-    <p class="more"><a href="https://github.com/Memrov/package-scout/tree/main/challenges/csv" rel="noreferrer">See the ten files, or bring your agent's parser</a></p>
+    <p class="more"><a href="https://github.com/Memrov/package-scout/tree/main/challenges/csv" rel="noreferrer">See the ten files, or bring your agent's parser</a> · <a href="https://github.com/Memrov/package-scout/actions/runs/44022644522" rel="noreferrer">Passing GitHub Actions run</a></p>
   </section>
 
   <section id="bar">

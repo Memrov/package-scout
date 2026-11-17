@@ -75,7 +75,7 @@ Use the correct run ID and attempt when multiple evaluations are in flight. Read
 
 The [CSV example](../evaluations/examples/papaparse.json) starts a temporary HTTP API around Papa Parse and tests quoted commas, blank lines, empty fields, and escaped quotes. The [concurrency example](../evaluations/examples/p-limit.json) tests overlapping tasks, result preservation, rejection propagation, and recovery. The [browser example](../evaluations/examples/papaparse-browser.json) bundles Papa Parse into a customer-import form, interacts with it in Chromium, asserts the displayed records, and captures a screenshot.
 
-The [CSV challenge](../evaluations/examples/csv-challenge.json) is the largest example: ten legal CSV files run against three hand-rolled parsers and the three packages Scout ranks first, failing unless every one of those packages parses every file. It is packed from [challenges/csv](../challenges/csv), which explains the files and records a local run. It is not in the table below because it has not yet been dispatched on GitHub Actions.
+The [CSV challenge](../evaluations/examples/csv-challenge.json) is the largest example: ten legal CSV files run against three hand-rolled parsers and the three packages Scout ranks first, failing unless every one of those packages parses every file. It is packed from [challenges/csv](../challenges/csv), which explains the files and preserves the original local results. The [public GitHub Actions run](https://github.com/Memrov/package-scout/actions/runs/44022644522) passed on 2026-11-17 and uploaded its evaluation evidence.
 
 Live verification on November 16, 2026:
 
