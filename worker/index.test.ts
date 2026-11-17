@@ -854,3 +854,40 @@ test('candidate manifests are fetched together, at most five at a time, without 
   assert.equal(concurrent.calls.filter(url => url.endsWith('/latest')).length, 10);
 });
 
+
+test('e18e: a complete match that a built-in replaces leads with that built-in, labelled as e18e', async () => {
+  const mock = upstream([{ name: 'object-assign', downloads: 40000000, dependents: 9000, description: 'ES2015 Object.assign() ponyfill' }]);
+  const short = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['object', 'assign'], detail: 'compact' });
+  const platform = object(short.platform);
+  assert.equal(platform.builtin, 'Object.assign');
+  assert.equal(platform.source, 'e18e module-replacements');
+  assert.equal(platform.replaces, 'object-assign');
+  assert.match(String(short.verdict), /^Built-in first: e18e lists Object\.assign as a replacement for object-assign\. If it does not cover what you need, Scout's pick is object-assign@1\.0\.0\./);
+  assert.ok(((short.packages as Json[])[0].cautions as string[]).some(c => /^e18e: no package needed; use Object\.assign\./.test(c)));
+});
+
+test('e18e: a Node-only replacement is not offered for the browser, and a partial match gets no built-in', async () => {
+  const mock = upstream([{ name: 'chalk', downloads: 300000000, dependents: 100000, description: 'Terminal string styling done right' }]);
+  const handler = createHandler({ ...mock, pause });
+  const node = await call(handler, 'search_packages', { keywords: ['chalk'], runtime: 'node', detail: 'compact' });
+  assert.equal(object(node.platform).builtin, 'util.styleText');
+  assert.match(String(object(node.platform).needs), /^Node\.js 20\.12\.0 or newer$/);
+  assert.match(String(node.verdict), /in Node\./);
+  const browser = await call(handler, 'search_packages', { keywords: ['chalk'], runtime: 'browser', detail: 'compact' });
+  assert.equal(browser.platform, null);
+  assert.ok(((browser.packages as Json[])[0].cautions as string[]).some(c => /^e18e suggests instead: util\.styleText, picocolors, ansis\. https:\/\/e18e\.dev\/docs\/replacements\/chalk$/.test(c)));
+  const partial = await call(handler, 'search_packages', { keywords: ['chalk', 'spinner'], runtime: 'node', detail: 'compact' });
+  assert.equal(partial.platform, null);
+});
+
+test('e18e: a curated built-in answer keeps precedence, and details report the replacements', async () => {
+  const mock = upstream([{ name: 'left-pad', downloads: 2000000, dependents: 500, description: 'String left pad' }]);
+  const handler = createHandler({ ...mock, pause });
+  const short = await call(handler, 'search_packages', { keywords: ['left pad'], detail: 'compact' });
+  assert.equal(object(short.platform).source, undefined);
+  assert.equal(object(short.platform).builtin, 'String.prototype.padStart()');
+  const details = await call(handler, 'get_package_details', { name: 'left-pad', version: '1.0.0' });
+  const replacements = object(object(details.package).replacements);
+  assert.deepEqual(replacements.kinds, ['native']);
+  assert.equal((replacements.suggestions as Json[])[0].id, 'String.prototype.padStart');
+});

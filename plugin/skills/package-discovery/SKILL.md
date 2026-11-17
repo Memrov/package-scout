@@ -20,7 +20,9 @@ PDFs and drag and drop are rabbit holes. Padding a string is a few lines.
 2. `platform`, when present, means the runtime already does the job. Use that
    built-in and install nothing, unless its `limits` rule it out for this task.
    `needs` states the runtime versions it requires. The packages listed below it
-   are for the case where the limits bite.
+   are for the case where the limits bite. When `platform.source` is
+   `e18e module-replacements`, the built-in is e18e's replacement for the top
+   pick named in `replaces`; check that it covers what the task uses.
 3. `packages` holds up to three candidates. Each has an `install` command, its
    weekly downloads, licenses, dependency count, runtime status and match type.
    `direct_dependents` is npm's count of packages that depend on it; it is null

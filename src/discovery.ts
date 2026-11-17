@@ -3,6 +3,7 @@ import { PROFILES, SCORING, compareCandidates, exclusionReasons, qualityEvidence
 import { matchKeywords, browserDeclaration, packageType, roleEvidence, runtimeEvidence } from './relevance.ts';
 import { platformAnswer } from './platform.ts';
 import { verdictFor } from './verdict.ts';
+import { builtInFor, replacementsFor } from './replacements.ts';
 import bootstrap from '../catalog/bootstrap.json' with { type: 'json' };
 
 // npm reports, with each search result, how many packages depend on that package.
@@ -137,6 +138,7 @@ function summarize(manifest: Json, version: Json | null, projects: Map<string, J
     browser_declaration: browserDeclaration(manifest), package_type: packageType(manifest),
     weekly_downloads: search?.downloads && typeof search.downloads === 'object' ? object(search.downloads).weekly ?? null : null,
     direct_dependents: directDependents,
+    replacements: replacementsFor(name),
     known_direct_advisories: version?.advisoryKeys ?? null,
     transitive_advisories: 'not_checked', runtime_compatibility: 'not_verified', feature_fit: 'evaluate_against_docs',
     deps_dev_status: version ? 'found' : 'not_found',
@@ -297,6 +299,9 @@ export async function executeTool(tool: string, input: Json, options: { fetchImp
       result.next_search = retry;
     }
     result.platform = platformAnswer(keywords, String(args.runtime));
+    // With no curated built-in, a complete match that e18e says a built-in replaces leads with that built-in.
+    const top = packages[0];
+    if (!result.platform && top && object(top.relevance_evidence).match_type === 'complete') result.platform = builtInFor(String(top.name), String(args.runtime));
     result.verdict = verdictFor(result);
   } else {
     const manifest = await client.manifest(args.name as string, args.version as string);

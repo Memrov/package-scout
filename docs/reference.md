@@ -82,6 +82,11 @@ The built-ins live in [catalog/platform.json](../catalog/platform.json). Each en
 
 Matching is deliberately strict. The whole request must be one listed concept, give or take filler words such as `javascript` or `utility` and the entry's own optional words. `uuid` and `uuid` + `generate` match `crypto.randomUUID()`; `uuid` + `validate` does not, because the built-in cannot validate. Word order does not matter, simple plurals are folded, and an entry is skipped when the requested runtime is not one of its own. The npm search still runs, so the shortlist is there if the built-in's limits rule it out.
 
+Scout also bundles e18e's [module-replacements](https://github.com/e18e/module-replacements) data (MIT), which records, for 943 packages, the built-in, the few lines or the lighter package that can replace them. It is compacted into [catalog/replacements.json](../catalog/replacements.json) by `npm run replacements:build` from the pinned `module-replacements` development dependency, with its license notice. It never changes which packages rank first. It adds two things:
+
+- A caution on any returned package e18e covers, such as `e18e suggests instead: util.styleText, picocolors, ansis.` for `chalk`, or the one-line replacement for a micro-utility.
+- When Scout's own catalog has no built-in and the top pick fully matches the request, the first native replacement e18e lists for that pick, if it is known to run in the requested runtime, becomes the `platform` answer. It carries `source: "e18e module-replacements"` and `replaces`, and the verdict reads `Built-in first: e18e lists process.loadEnvFile as a replacement for dotenv in Node.` rather than Scout's own wording, because e18e's entries have no curated limits. Replacements whose runtime e18e does not record are only cited.
+
 To add one, add an entry and run the tests. Every entry that claims to work on Node needs a `verify` expression, and the test suite executes it; browser markup is exempt because it cannot run there.
 
 ## Filtering and scoring
