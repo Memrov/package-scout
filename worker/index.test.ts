@@ -8,6 +8,9 @@ import { matchKeywords } from '../src/relevance.ts';
 import { PLATFORM, concept, platformAnswer } from '../src/platform.ts';
 import { compact, formatCount, verdictFor } from '../src/verdict.ts';
 import { createRequire } from 'node:module';
+import { PAGE } from '../src/page.ts';
+import challenge from '../challenges/csv/results.json' with { type: 'json' };
+import { readFile } from 'node:fs/promises';
 
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
@@ -742,4 +745,27 @@ test('download counts read the way a person would say them', () => {
   const result = { packages: [{ name: 'x', version: '2.0.0', weekly_downloads: 12000, licenses: null, direct_runtime_dependency_count: null, known_direct_advisories: null, relevance_evidence: { match_type: 'complete' } }], platform: null };
   assert.match(verdictFor(result), /^Scout's pick: x@2\.0\.0\. 12K downloads a week\. /);
   assert.equal(compact({ ...result, verdict: 'kept', packages: [], warnings: [], meta: {}, attribution: {}, evidence_limits: '' }).verdict, 'kept');
+});
+
+test('the homepage is self-contained, and its examples and figures are the real ones', async () => {
+  // The page is a plain template literal: an escape or interpolation would silently change the markup.
+  const source = await readFile(new URL('../src/page.ts', import.meta.url), 'utf8');
+  assert.equal(source.includes('\\'), false, 'no backslashes in src/page.ts');
+  assert.equal(source.split('`').length, 3, 'exactly one template literal');
+  assert.equal(source.includes('${'), false, 'no interpolation');
+  // One document: nothing is fetched from anywhere else.
+  assert.doesNotMatch(PAGE, /<script[^>]+src=|<link[^>]+stylesheet|@import|url\(\s*['"]?https?:|<img|<iframe/i);
+  for (const text of ['Package Scout', 'Find it', 'Check it', 'Prove it', 'search_packages', 'get_package_details', '/v1/search', '/mcp']) assert.ok(PAGE.includes(text), text);
+  // Every rabbit-hole chip is a valid search, and the built-in ones really are built in.
+  const chips = [...PAGE.matchAll(/class="chip" data-q="([^"]+)" data-runtime="([^"]+)" data-keywords='([^']+)'/g)];
+  assert.equal(chips.length, 10);
+  for (const [, text, runtime, keywords] of chips) {
+    assert.equal(argumentsFor('search_packages', { keywords: JSON.parse(keywords), runtime }).runtime, runtime, text);
+    assert.equal(platformAnswer(JSON.parse(keywords), runtime) !== null, ['date picker', 'left pad', 'is odd'].includes(text), text);
+  }
+  // The challenge rows show exactly what the recorded run measured.
+  assert.equal(challenge.results.length, 6);
+  for (const result of challenge.results) {
+    assert.match(PAGE, new RegExp(`data-entrant="${result.id}" data-lines="${result.lines}" data-passed="${result.passed}"[\\s\\S]*?width:${result.passed * 10}%[\\s\\S]*?>${result.passed} of 10<`), result.id);
+  }
 });
