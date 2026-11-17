@@ -64,7 +64,8 @@ export class PackageSources {
   private async request(url: string, body?: Json): Promise<Json> {
     if (this.counts.total >= this.maxRequests) throw new Error('Upstream request budget exhausted; no snapshot published');
     const sequence = this.counts.total++;
-    this.counts[new URL(url).hostname.endsWith('npmjs.org') ? 'npm' : 'deps_dev']++;
+    const hostname = new URL(url).hostname;
+    this.counts[hostname === 'registry.npmjs.org' || hostname === 'api.npmjs.org' ? 'npm' : 'deps_dev']++;
     if (sequence) await this.pause(250);
     const response = await this.fetchImpl(url, {
       method: body ? 'POST' : 'GET', redirect: 'manual',

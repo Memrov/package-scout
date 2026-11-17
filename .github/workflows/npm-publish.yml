@@ -47,6 +47,8 @@ jobs:
           npm test
           npm run build
           npm run validate
-      - name: Publish with npm trusted publishing and provenance
+      - name: Publish with npm provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
         run: npm publish ./npm --access public --provenance --ignore-scripts
 

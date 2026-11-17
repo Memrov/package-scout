@@ -105,6 +105,25 @@ test('agent artifacts cannot smuggle runner files through symlinks', async (t) =
   await assert.rejects(readFile(path.join(output, 'results.json')), { code: 'ENOENT' });
 });
 
+test('agent evidence and scratch are untouched while container cleanup is unconfirmed', async (t) => {
+  const { report, output, calls } = await harness(t, {
+    evaluate: async ({ workspace }) => {
+      await writeFile(path.join(workspace, 'results.json'), '{"untrusted":"still writable"}');
+      await writeFile(path.join(workspace, 'artifacts/live.txt'), 'still writable');
+    },
+    result: (args) => args[0] === 'rm' ? { exit_code: 1, signal: null, timed_out: false } : undefined,
+  });
+  assert.equal(report.status, 'failed');
+  assert.equal(report.evaluation_results, null);
+  assert.equal(report.installed_package, null);
+  assert.match(report.collection_warnings.join(' '), /evidence.*not collected/);
+  const workspace = calls.at(-1).context.workspace;
+  t.after(() => rm(path.dirname(workspace), { recursive: true, force: true }));
+  assert.equal(await readFile(path.join(workspace, 'artifacts/live.txt'), 'utf8'), 'still writable');
+  await assert.rejects(readFile(path.join(output, 'results.json')), { code: 'ENOENT' });
+  await assert.rejects(readFile(path.join(output, 'artifacts/live.txt')), { code: 'ENOENT' });
+});
+
 test('install can be delegated entirely to agent setup and package mismatches remain visible', async (t) => {
   const { report, calls } = await harness(t, { spec: { install: false }, evaluate: async ({ workspace }) => {
     await mkdir(path.join(workspace, 'node_modules/@example/package'), { recursive: true });
