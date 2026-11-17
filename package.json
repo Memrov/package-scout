@@ -3,7 +3,9 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
-  "engines": { "node": ">=24.3.0" },
+  "engines": {
+    "node": ">=24.3.0"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "plugin:build": "node scripts/build-claude-plugin.mjs",
@@ -14,7 +16,8 @@
     "check": "tsc --noEmit",
     "dev": "node scripts/preview.ts",
     "test:live": "node scripts/smoke-test.ts",
-    "test": "node scripts/build-claude-plugin.mjs --check && node scripts/build-npm-package.mjs --check && node --test scripts/refresh-catalog.test.ts worker/index.test.ts scripts/evaluate-package.test.mjs challenges/csv/challenge.test.mjs scripts/mcp-stdio.test.mjs scripts/npm-package.test.mjs",
+    "test": "node scripts/build-claude-plugin.mjs --check && node scripts/build-npm-package.mjs --check && node --test scripts/refresh-catalog.test.ts worker/index.test.ts worker/input.fuzz.test.ts scripts/evaluate-package.test.mjs challenges/csv/challenge.test.mjs scripts/mcp-stdio.test.mjs scripts/npm-package.test.mjs",
+    "test:fuzz": "node --test worker/input.fuzz.test.ts",
     "mcp": "node scripts/mcp-stdio.mjs",
     "test:npm": "node --test scripts/npm-package.test.mjs",
     "evaluate": "node scripts/evaluate-package.mjs",
@@ -22,5 +25,10 @@
     "challenge": "node challenges/csv/run.mjs",
     "holes": "node scripts/rabbit-holes.ts"
   },
-  "devDependencies": { "@types/node": "26.6.6", "esbuild": "0.28.2", "typescript": "7.0.2" }
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "fast-check": "4.10.2",
+    "typescript": "7.0.2"
+  }
 }

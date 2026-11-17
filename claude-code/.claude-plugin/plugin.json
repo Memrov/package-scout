@@ -1,6 +1,6 @@
 {
   "name": "package-scout",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Don't build it. Scout it. Find the npm package, or the built-in, before writing custom code.",
   "author": { "name": "Memrov", "url": "https://github.com/Memrov" },
   "homepage": "https://github.com/Memrov/package-scout",
