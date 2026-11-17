@@ -52,7 +52,8 @@ The Claude Code manifest is [`claude-code/.claude-plugin/plugin.json`](../claude
 The repository's marketplace points at the isolated `claude-code/` directory.
 Its MCP configuration lives inside the plugin manifest so simply opening this
 repository does not register an extra project-level MCP server. The shared
-guidance is copied into the skill's references by the plugin build.
+guidance is inlined into the skill by the plugin build, so Claude does not spend a
+step opening a separate file.
 
 ## Update or remove
 
@@ -82,7 +83,9 @@ npm run build && npm run validate
 
 `--plugin-dir` loads the distributable for that session without a marketplace
 install. Keep the manifest's version current when shipping a plugin update.
-Commit the generated `claude-code/server.mjs` and skill reference after source
+Edit the skill in `scripts/scout-skill.template.md` and the shared guidance in
+`plugin/skills/package-discovery/SKILL.md`; the build writes `skills/scout/SKILL.md`.
+Commit the generated `claude-code/server.mjs` and `skills/scout/SKILL.md` after source
 changes so a GitHub install needs no build step. `npm test` first checks that
 both generated files match their source; `npm run plugin:check` runs that check
 alone. Build tools are development dependencies of this repository only.

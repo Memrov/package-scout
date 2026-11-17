@@ -7,7 +7,7 @@ import { compact } from '../src/verdict.ts';
 
 type CacheLike = { match(request: Request): Promise<Response | undefined>; put(request: Request, response: Response): Promise<unknown> };
 type Context = { waitUntil(promise: Promise<unknown>): void };
-type Options = { fetchImpl?: typeof fetch; pause?: (ms: number) => Promise<void>; cache?: CacheLike | null; bootstrap?: Json[] };
+type Options = { fetchImpl?: typeof fetch; pause?: (ms: number) => Promise<void>; cache?: CacheLike | null; bootstrap?: Json[]; dependents?: Record<string, number> };
 const PROTOCOL = '2026-07-28';
 // Earlier revisions whose requests this stateless, tools-only server answers identically:
 // one JSON-RPC message per POST, a JSON reply, no session. Clients built on the stable SDKs ask for these.

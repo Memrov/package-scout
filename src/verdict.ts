@@ -80,7 +80,7 @@ export function compact(result: Json): Json {
     const notes = cautions(candidate);
     return {
       name: candidate.name, version: candidate.version, install: candidate.install_command, description: clip(candidate.description),
-      weekly_downloads: candidate.weekly_downloads, licenses: candidate.licenses, dependencies: candidate.direct_runtime_dependency_count,
+      weekly_downloads: candidate.weekly_downloads, direct_dependents: candidate.direct_dependents ?? null, licenses: candidate.licenses, dependencies: candidate.direct_runtime_dependency_count,
       runtime: object(candidate.runtime_evidence).status, match: relevance.match_type,
       ...(relevance.match_type === 'complete' ? {} : { unmatched_keywords: relevance.unmatched_keywords }),
       published_at: candidate.published_at, openssf_scorecard: scorecard ? object(scorecard).score : null,

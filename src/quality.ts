@@ -6,15 +6,15 @@ const RELEVANCE = ['keyword_match_fraction', 'keyword_specificity', 'package_rol
 export const RANKING_PROFILES = {
   vibe: {
     goal: 'Quick start, using observed package footprint as a proxy; integration effort is not measured.',
-    priorities: [...RELEVANCE, 'direct_runtime_dependency_count', 'declared_install_hook_count', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
+    priorities: [...RELEVANCE, 'direct_runtime_dependency_count', 'declared_install_hook_count', 'direct_dependents', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
   },
   production: {
     goal: 'Prefer observed adoption after relevance and risk filters; repository practices provide optional tie-breakers.',
-    priorities: [...RELEVANCE, 'weekly_downloads', 'scorecard_score', 'maintained_check_score', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
+    priorities: [...RELEVANCE, 'direct_dependents', 'weekly_downloads', 'scorecard_score', 'maintained_check_score', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
   },
   internal: {
     goal: 'Prefer a smaller observed installation footprint; external services and operating costs are not assessed.',
-    priorities: [...RELEVANCE, 'declared_install_hook_count', 'direct_runtime_dependency_count', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
+    priorities: [...RELEVANCE, 'declared_install_hook_count', 'direct_runtime_dependency_count', 'direct_dependents', 'weekly_downloads', 'scorecard_score', 'maintained_check_score'],
   },
 } as const;
 export type RankingProfile = keyof typeof RANKING_PROFILES;
@@ -32,12 +32,13 @@ export const PROFILES = {
 } as const;
 
 export const SCORING = {
-  version: '3.2.0', method: 'ordered_evidence', aggregate_score: null,
+  version: '3.3.0', method: 'ordered_evidence', aggregate_score: null,
   meaning: 'Profile-specific lexicographic ordering of observed evidence. No invented composite quality or integration-effort score.',
   profiles: RANKING_PROFILES,
   smaller_is_preferred: ['direct_runtime_dependency_count', 'declared_install_hook_count'],
   missing_data: 'Unknown values remain null. For each priority, observed evidence sorts before unknown evidence; this is a coverage preference, not a poor-quality score.',
   tie_breaker: 'Original discovery position, then package name.',
+  dependents: { source: 'deps.dev direct dependents, summed over recent release lines', role: 'adoption evidence that precedes weekly downloads within the same download tier', reason: 'Weekly downloads also count installs pulled in by other packages, so a hidden dependency can outrank the library people choose directly.', coverage: 'A periodic snapshot of popular packages found by common task searches. Packages outside it sort after those with counts in the same download tier, under the missing-data rule.' },
   scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, required: false, role: 'optional tie-breaker after relevance and observed adoption', methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
   limits: ['Profile priorities are product policies, not empirically calibrated weights.', 'Dependency counts and declared install hooks are footprint facts, not measured integration effort.', 'Release dates alone do not establish maintenance health; LFX Health Score is not computed.', 'Scorecard describes repository security practices, not package correctness or feature fit.'],
   discovery: 'Keyword coverage, then matched-concept specificity using smoothed inverse document frequency in the retrieved pool, primary-library role hints, descriptive matches, runtime evidence and adoption tier precede profile preferences. Specificity is retrieval evidence, not a quality or fit score. Missing runtime declarations remain eligible and unverified.',
@@ -91,6 +92,7 @@ export function qualityEvidence(candidate: Json, position: number, profile: Rank
     declared_install_hook_count: Array.isArray(candidate.declared_install_hooks) ? candidate.declared_install_hooks.length : null,
     scorecard_score: selected?.score ?? null,
     maintained_check_score: maintained?.score ?? null,
+    direct_dependents: observedNumber(candidate.direct_dependents),
     weekly_downloads: observedNumber(candidate.weekly_downloads),
   };
   return {

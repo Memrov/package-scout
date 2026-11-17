@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-17T00:00:00.000Z",
+  "method": "placeholder until the first snapshot is built",
+  "source": "https://api.deps.dev/v3alpha/systems/npm/packages/{name}/versions/{version}:dependents",
+  "license": "Generated from deps.dev data under CC-BY-4.0; upstream data retains its applicable terms.",
+  "packages": {}
+}

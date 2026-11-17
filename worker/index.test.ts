@@ -13,7 +13,7 @@ import challenge from '../challenges/csv/results.json' with { type: 'json' };
 import { readFile } from 'node:fs/promises';
 
 const pause = async () => {};
-const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
+const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ dependents: {}, ...options, bootstrap: [] });
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
 type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
 const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
@@ -621,7 +621,7 @@ test('the default answer is compact: a verdict, the picks, and a fraction of the
   assert.match(String(short.verdict), /^Scout's pick: papa@1\.0\.0\. 25\.5M downloads a week, MIT, zero dependencies, no known direct advisories\. /);
   assert.equal(short.platform, null);
   const first = (short.packages as Json[])[0];
-  assert.deepEqual(Object.keys(first), ['name', 'version', 'install', 'description', 'weekly_downloads', 'licenses', 'dependencies', 'runtime', 'match', 'published_at', 'openssf_scorecard', 'npm_url', 'repository']);
+  assert.deepEqual(Object.keys(first), ['name', 'version', 'install', 'description', 'weekly_downloads', 'direct_dependents', 'licenses', 'dependencies', 'runtime', 'match', 'published_at', 'openssf_scorecard', 'npm_url', 'repository']);
   assert.equal(first.install, 'npm install papa@1.0.0');
   assert.equal(first.openssf_scorecard, 7);
   assert.equal(first.repository, 'https://github.com/example/papa');
@@ -783,3 +783,51 @@ test('the README quotes the recorded challenge results and the real number of bu
     assert.ok(readme.includes(`\`${builtin}\``) && PLATFORM.some(entry => entry.builtin === builtin), builtin);
   }
 });
+
+test('direct dependents outrank raw downloads within a download tier, and uncounted packages follow counted ones', async () => {
+  // All three sit in the 10M-100M weekly tier. The most downloaded is mostly a hidden dependency.
+  const mock = upstream([
+    { name: 'hidden-dependency', downloads: 91000000, description: 'CSV parser' },
+    { name: 'chosen-library', downloads: 33000000, description: 'CSV parser' },
+    { name: 'uncounted-library', downloads: 50000000, description: 'CSV parser' },
+  ]);
+  const handler = createHandler({ ...mock, pause, dependents: { 'hidden-dependency': 3288, 'chosen-library': 8999 } });
+  const full = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['chosen-library', 'hidden-dependency', 'uncounted-library']);
+  assert.deepEqual((full.packages as Json[]).map(p => p.direct_dependents), [8999, 3288, null]);
+  assert.ok((object(full.scoring).priorities as string[]).indexOf('direct_dependents') < (object(full.scoring).priorities as string[]).indexOf('weekly_downloads'));
+  assert.equal(typeof object(object(full.scoring).dependents).as_of, 'string');
+  const short = await call(handler, 'search_packages', { keywords: ['csv'], detail: 'compact' });
+  assert.equal((short.packages as Json[])[0].direct_dependents, 8999);
+  const details = await call(handler, 'get_package_details', { name: 'chosen-library', version: '1.0.0' });
+  assert.equal(object(details.package).direct_dependents, 8999);
+});
+
+test('a download tier still outranks dependents, so a small package cannot jump a popular one', async () => {
+  const mock = upstream([
+    { name: 'popular-csv', downloads: 2000000, description: 'CSV parser' },
+    { name: 'tiny-csv', downloads: 20000, description: 'CSV parser' },
+  ]);
+  const handler = createHandler({ ...mock, pause, dependents: { 'popular-csv': 10, 'tiny-csv': 5000 } });
+  const full = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['popular-csv', 'tiny-csv']);
+});
+
+test('candidate manifests are fetched together, at most five at a time, without changing the answer', async () => {
+  const discovered = Array.from({ length: 11 }, (_, i) => ({ name: `found-csv-${i}`, downloads: 10000 + i, description: 'CSV parser' }));
+  const sequential = upstream(discovered);
+  let inFlight = 0, peak = 0;
+  const concurrent = upstream(discovered);
+  const fetchImpl: typeof fetch = async (url, init) => {
+    if (!String(url).endsWith('/latest')) return concurrent.fetchImpl(url, init);
+    inFlight++; peak = Math.max(peak, inFlight);
+    await new Promise(done => setTimeout(done, 15));
+    try { return await concurrent.fetchImpl(url, init); } finally { inFlight--; }
+  };
+  const together = await call(createHandler({ fetchImpl, pause }), 'search_packages', { keywords: ['csv'] });
+  const reference = await call(createHandler({ ...sequential, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.ok(peak > 1 && peak <= 5, `peak concurrency ${peak}`);
+  assert.deepEqual((together.packages as Json[]).map(p => p.name), (reference.packages as Json[]).map(p => p.name));
+  assert.equal(concurrent.calls.filter(url => url.endsWith('/latest')).length, 10);
+});
+
