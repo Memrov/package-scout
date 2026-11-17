@@ -13,7 +13,7 @@ Use **Node.js 24.3.0 or newer**. Configure an MCP client with:
   "mcpServers": {
     "package-scout": {
       "command": "npx",
-      "args": ["--yes", "@memrov2/package-scout@1.0.0"]
+      "args": ["--yes", "@memrov2/package-scout@1.0.1"]
     }
   }
 }
@@ -22,7 +22,7 @@ Use **Node.js 24.3.0 or newer**. Configure an MCP client with:
 For Claude Code:
 
 ```sh
-claude mcp add --transport stdio package-scout -- npx --yes @memrov2/package-scout@1.0.0
+claude mcp add --transport stdio package-scout -- npx --yes @memrov2/package-scout@1.0.1
 ```
 
 Or install the [Claude Code plugin](https://github.com/Memrov/package-scout/blob/main/docs/claude-code-plugin.md),

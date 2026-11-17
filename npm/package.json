@@ -1,6 +1,6 @@
 {
   "name": "@memrov2/package-scout",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Find npm packages or platform built-ins before writing custom code. A deterministic MCP server with live npm and deps.dev evidence.",
   "type": "module",
   "license": "Apache-2.0",

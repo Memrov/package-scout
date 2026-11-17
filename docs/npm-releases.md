@@ -26,10 +26,15 @@ prepares `@memrov2/package-scout`, using the authenticated publisher's personal
 scope. A prepared manifest or successful dry run
 does not mean the package has been published.
 
-An authorized npm owner signs in using `npm login --auth-type=web` and publishes
-the inspected tarball with `npm publish <tarball> --access public --ignore-scripts`.
-Keep credentials out of the repository and chat. A local publication does not
-produce GitHub Actions provenance; do not claim that it does.
+For the first release, an authorized npm owner can supply a narrowly scoped npm
+token through the encrypted GitHub Actions secret `NPM_BOOTSTRAP_TOKEN`. Run
+`npm-publish.yml` from the tested `main` commit, verify the registry and native
+npm provenance, then remove that temporary secret. Its value is exposed only to
+the final publication step. Keep credentials out of source and logs.
+
+Alternatively, an npm owner can publish the inspected tarball locally using
+`npm publish <tarball> --access public --ignore-scripts`. A local publication
+does not produce GitHub Actions provenance; do not claim that it does.
 
 ## Subsequent releases through GitHub Actions
 
@@ -42,8 +47,8 @@ Configure npm's trusted publisher for the package with these exact values:
 - Environment: leave blank
 - Allowed action: direct `npm publish`
 
-This must be configured by an npm package owner. The workflow uses short-lived
-OIDC credentials and requests no stored npm token. Configure the publisher close
+This must be configured by an npm package owner. After bootstrap, the workflow
+uses short-lived OIDC credentials without a stored npm token. Configure the publisher close
 to the next release: npm currently expires a new configuration if its first
 successful publish does not happen within two days.
 

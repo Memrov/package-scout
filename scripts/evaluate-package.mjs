@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
-import { appendFile, cp, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { constants, createWriteStream } from 'node:fs';
+import { appendFile, cp, lstat, mkdir, mkdtemp, open, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,13 +73,19 @@ export async function execute(program, args, { log, timeoutMs }) {
 
 async function readWorkspaceFile(workspace, relative, maxBytes = 2 * 1024 * 1024) {
   const location = path.join(workspace, relative);
+  let file;
   try {
-    if (!inside(await realpath(workspace), await realpath(location)) || !(await lstat(location)).isFile()) return null;
-    if ((await stat(location)).size > maxBytes) throw new Error(`${relative} is too large to embed in report.json; inspect the artifact instead`);
-    return await readFile(location, 'utf8');
+    file = await open(location, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    if (!inside(await realpath(workspace), await realpath(location))) return null;
+    const metadata = await file.stat();
+    if (!metadata.isFile()) return null;
+    if (metadata.size > maxBytes) throw new Error(`${relative} is too large to embed in report.json; inspect the artifact instead`);
+    return await file.readFile('utf8');
   } catch (error) {
-    if (error.code === 'ENOENT') return null;
+    if (error.code === 'ENOENT' || error.code === 'ELOOP') return null;
     throw error;
+  } finally {
+    await file?.close();
   }
 }
 
@@ -202,17 +208,29 @@ export async function runEvaluation(input, options = {}) {
     report.status = error.timedOut ? 'timed_out' : 'failed';
     report.error = error.message;
   } finally {
+    let containerStopped = false;
     try {
       const cleanup = await run('docker', ['rm', '--force', name], { log: path.join(output, 'logs/cleanup.log'), timeoutMs: 15_000, workspace, control });
-      if (cleanup.exit_code !== 0 || cleanup.timed_out) report.collection_warnings.push('Container removal did not complete; inspect logs/cleanup.log');
+      containerStopped = cleanup.exit_code === 0 && !cleanup.timed_out;
+      if (!containerStopped) report.collection_warnings.push('Container removal did not complete; inspect logs/cleanup.log');
     } catch (error) { report.collection_warnings.push(`Container cleanup: ${error.message}`); }
-    await collectEvidence(workspace, output, spec, report);
+    if (containerStopped) await collectEvidence(workspace, output, spec, report);
+    else {
+      report.collection_warnings.push('Agent evidence was not collected because the container was not confirmed stopped');
+      report.collection_warnings.push(`Temporary workspace retained at ${scratch}; stop container ${name} before removing it`);
+      if (report.status === 'succeeded') {
+        report.status = 'failed';
+        report.error = 'Container cleanup failed; agent evidence was not collected';
+      }
+    }
     report.completed_at = new Date().toISOString();
     report.duration_ms = Date.now() - started;
     await writeFile(path.join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n');
-    await rm(scratch, { recursive: true, force: true }).catch((error) => {
-      console.error(`Temporary workspace cleanup: ${error.message}`);
-    });
+    if (containerStopped) {
+      await rm(scratch, { recursive: true, force: true }).catch((error) => {
+        console.error(`Temporary workspace cleanup: ${error.message}`);
+      });
+    }
   }
   return { output, report };
 }
