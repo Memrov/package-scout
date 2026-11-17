@@ -570,6 +570,22 @@ test('niche retry preserves an explicit strict keyword constraint', async () => 
   assert.equal(argumentsFor('search_packages', result.next_search).match_all_keywords, true);
 });
 
+test('a legacy manifest with array-style engines cannot abort a search', async () => {
+  const mock = upstream([
+    { name: 'cordova-pdf', downloads: 50000, description: 'PDF generator plugin', manifest: { engines: [{ name: 'cordova', version: '>=3.0.0' }] } },
+    { name: 'node-pdf', downloads: 40000, description: 'PDF generator', manifest: { engines: { node: '>=18' } } },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  for (const runtime of ['any', 'node', 'browser']) {
+    const result = await call(handler, 'search_packages', { keywords: ['pdf generator'], runtime });
+    assert.equal(result.returned, 2, runtime);
+  }
+  const node = await call(handler, 'search_packages', { keywords: ['pdf generator'], runtime: 'node' });
+  const status = (name: string) => object((node.packages as Json[]).find(p => p.name === name)!.runtime_evidence).status;
+  assert.equal(status('node-pdf'), 'declared');
+  assert.equal(status('cordova-pdf'), 'unknown');
+});
+
 // Short answers, verdicts and built-in platform answers.
 
 test('the default answer is compact: a verdict, the picks, and a fraction of the full evidence', async () => {

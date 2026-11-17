@@ -38,7 +38,8 @@ export function runtimeEvidence(metadata: Json, runtime: string): Json {
   const description = String(metadata.description ?? '');
   const browser = browserDeclaration(metadata);
   const explicitBrowser = browser && browser.field !== 'peerDependencies';
-  const node = metadata.engines && typeof metadata.engines === 'object' && typeof object(metadata.engines).node === 'string';
+  // Legacy manifests (Cordova plugins, for one) declare engines as an array. That is not a Node declaration, and not a reason to fail.
+  const node = !!metadata.engines && typeof metadata.engines === 'object' && !Array.isArray(metadata.engines) && typeof object(metadata.engines).node === 'string';
   const text = [description, ...(Array.isArray(metadata.keywords) ? metadata.keywords : [])].join(' ');
   const peers = metadata.peerDependencies && typeof metadata.peerDependencies === 'object' ? Object.keys(metadata.peerDependencies) : [];
   const incompatible = runtime === 'browser'
