@@ -238,26 +238,4 @@ export class PackageSources {
   async projects(ids: string[]): Promise<Map<string, Json | null>> {
     return this.batch([...new Set(ids)].map(id => ({ projectKey: { id } })), 'project');
   }
-
-  // Published release versions known to deps.dev, used to choose which release lines to count.
-  async releaseVersions(name: string): Promise<string[]> {
-    const data = await this.request(`${DEPS_API}/systems/npm/packages/${encodeURIComponent(packageName(name))}`);
-    if (object(data.packageKey).name !== name || !Array.isArray(data.versions)) throw new Error('deps.dev returned a different package');
-    return data.versions.flatMap(value => {
-      const version = object(object(value).versionKey).version;
-      return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? [version] : [];
-    });
-  }
-
-  // Packages that depend directly on this exact version; null when deps.dev has not computed it.
-  async directDependents(name: string, version: string): Promise<number | null> {
-    try {
-      const data = await this.request(`${DEPS_API}/systems/npm/packages/${encodeURIComponent(packageName(name))}/versions/${encodeURIComponent(version)}:dependents`);
-      const count = data.directDependentCount;
-      return typeof count === 'number' && Number.isInteger(count) && count >= 0 ? count : null;
-    } catch (error) {
-      if (error instanceof UpstreamHttpError && error.status === 404) return null;
-      throw error;
-    }
-  }
 }

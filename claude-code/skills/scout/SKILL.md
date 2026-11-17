@@ -52,8 +52,8 @@ PDFs and drag and drop are rabbit holes. Padding a string is a few lines.
    are for the case where the limits bite.
 3. `packages` holds up to three candidates. Each has an `install` command, its
    weekly downloads, licenses, dependency count, runtime status and match type.
-   `direct_dependents` counts packages that depend on it directly, from a
-   periodic deps.dev snapshot; it is null for packages outside that snapshot.
+   `direct_dependents` is npm's count of packages that depend on it; it is null
+   when npm reports none.
    Weekly downloads include installs pulled in by other packages, so prefer the
    dependents count when judging what developers choose.
    `cautions`, when present, says what to watch for. A partial match also lists

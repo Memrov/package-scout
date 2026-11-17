@@ -13,9 +13,9 @@ import challenge from '../challenges/csv/results.json' with { type: 'json' };
 import { readFile } from 'node:fs/promises';
 
 const pause = async () => {};
-const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ dependents: {}, ...options, bootstrap: [] });
+const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
+type Package = { name: string; description?: string; downloads?: number; dependents?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
 const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
 function upstream(packages: Package[], listed?: string[] | Record<string, string[]>) {
   const calls: string[] = [];
@@ -23,7 +23,7 @@ function upstream(packages: Package[], listed?: string[] | Record<string, string
     const url = new URL(String(input)); calls.push(url.toString());
     if (url.pathname === '/-/v1/search') {
       const selected = Array.isArray(listed) ? listed : listed?.[url.searchParams.get('text') ?? ''];
-      return response({ objects: packages.filter(p => !selected || selected.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description ?? 'CSV cache concurrency limit package for the browser', keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
+      return response({ objects: packages.filter(p => !selected || selected.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description ?? 'CSV cache concurrency limit package for the browser', keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }), ...(p.dependents === undefined ? {} : { dependents: String(p.dependents) }) })) });
     }
     if (url.host === 'api.npmjs.org') {
       const name = decodeURIComponent(url.pathname.split('/').at(-1)!);
@@ -787,30 +787,53 @@ test('the README quotes the recorded challenge results and the real number of bu
 test('direct dependents outrank raw downloads within a download tier, and uncounted packages follow counted ones', async () => {
   // All three sit in the 10M-100M weekly tier. The most downloaded is mostly a hidden dependency.
   const mock = upstream([
-    { name: 'hidden-dependency', downloads: 91000000, description: 'CSV parser' },
-    { name: 'chosen-library', downloads: 33000000, description: 'CSV parser' },
+    { name: 'hidden-dependency', downloads: 91000000, dependents: 1565, description: 'CSV parser' },
+    { name: 'chosen-library', downloads: 33000000, dependents: 13580, description: 'CSV parser' },
     { name: 'uncounted-library', downloads: 50000000, description: 'CSV parser' },
   ]);
-  const handler = createHandler({ ...mock, pause, dependents: { 'hidden-dependency': 3288, 'chosen-library': 8999 } });
+  const handler = createHandler({ ...mock, pause });
   const full = await call(handler, 'search_packages', { keywords: ['csv'] });
   assert.deepEqual((full.packages as Json[]).map(p => p.name), ['chosen-library', 'hidden-dependency', 'uncounted-library']);
-  assert.deepEqual((full.packages as Json[]).map(p => p.direct_dependents), [8999, 3288, null]);
-  assert.ok((object(full.scoring).priorities as string[]).indexOf('direct_dependents') < (object(full.scoring).priorities as string[]).indexOf('weekly_downloads'));
-  assert.equal(typeof object(object(full.scoring).dependents).as_of, 'string');
+  assert.deepEqual((full.packages as Json[]).map(p => p.direct_dependents), [13580, 1565, null]);
+  const priorities = object(full.scoring).priorities as string[];
+  assert.ok(priorities.indexOf('direct_dependents') < priorities.indexOf('runtime_preference'));
+  assert.ok(priorities.indexOf('runtime_preference') < priorities.indexOf('weekly_downloads'));
+  assert.match(String(object(object(full.scoring).dependents).source), /npm registry search/);
   const short = await call(handler, 'search_packages', { keywords: ['csv'], detail: 'compact' });
-  assert.equal((short.packages as Json[])[0].direct_dependents, 8999);
-  const details = await call(handler, 'get_package_details', { name: 'chosen-library', version: '1.0.0' });
-  assert.equal(object(details.package).direct_dependents, 8999);
+  assert.equal((short.packages as Json[])[0].direct_dependents, 13580);
+});
+
+test('malformed dependents counts from npm stay unknown instead of ranking', async () => {
+  const mock = upstream([{ name: 'odd-count', downloads: 50000, description: 'CSV parser' }]);
+  const fetchImpl: typeof fetch = async (url, init) => {
+    const res = await mock.fetchImpl(url, init);
+    if (new URL(String(url)).pathname !== '/-/v1/search') return res;
+    const data = await res.json() as Json;
+    for (const item of data.objects as Json[]) item.dependents = '12e9';
+    return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+  };
+  const full = await call(createHandler({ fetchImpl, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.equal((full.packages as Json[])[0].direct_dependents, null);
 });
 
 test('a download tier still outranks dependents, so a small package cannot jump a popular one', async () => {
   const mock = upstream([
-    { name: 'popular-csv', downloads: 2000000, description: 'CSV parser' },
-    { name: 'tiny-csv', downloads: 20000, description: 'CSV parser' },
+    { name: 'popular-csv', downloads: 2000000, dependents: 10, description: 'CSV parser' },
+    { name: 'tiny-csv', downloads: 20000, dependents: 5000, description: 'CSV parser' },
   ]);
-  const handler = createHandler({ ...mock, pause, dependents: { 'popular-csv': 10, 'tiny-csv': 5000 } });
-  const full = await call(handler, 'search_packages', { keywords: ['csv'] });
+  const full = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'] });
   assert.deepEqual((full.packages as Json[]).map(p => p.name), ['popular-csv', 'tiny-csv']);
+});
+
+test('a runtime declaration breaks ties but cannot lift a less adopted package over a popular one', async () => {
+  const mock = upstream([
+    { name: 'declared-small', downloads: 20000, dependents: 0, description: 'HTML sanitizer for the browser', manifest: { browser: './dist/browser.js' } },
+    { name: 'undeclared-popular', downloads: 5000000, dependents: 2800, description: 'HTML sanitizer' },
+    { name: 'declared-twin', downloads: 4000000, dependents: 2800, description: 'HTML sanitizer', manifest: { browser: './browser.js' } },
+  ]);
+  const full = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['html', 'sanitizer'], runtime: 'browser' });
+  // Same tier and dependents: the declared twin wins the tie. The small declared package comes last.
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['declared-twin', 'undeclared-popular', 'declared-small']);
 });
 
 test('candidate manifests are fetched together, at most five at a time, without changing the answer', async () => {
