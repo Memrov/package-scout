@@ -8,6 +8,9 @@
 
 # Package Scout
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Memrov/package-scout/badge)](https://scorecard.dev/viewer/?uri=github.com/Memrov/package-scout)
+[![Test and build](https://github.com/Memrov/package-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/Memrov/package-scout/actions/workflows/ci.yml)
+
 Your AI agent loves writing code. Scout would rather not.
 
 Before your agent hand-rolls a CSV parser, Package Scout checks whether npm, or the platform itself, already has one. It answers with a one-line verdict, an install command and the facts behind both. It makes no model calls and needs no API keys.

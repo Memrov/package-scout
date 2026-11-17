@@ -1,0 +1,33 @@
+name: Test and build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Install locked development and challenge dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix challenges/csv
+      - name: Verify types, distributions and tests
+        run: |
+          npm run check
+          npm test
+          npm run build
+          npm run validate
+
