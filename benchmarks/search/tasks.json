@@ -1,0 +1,33 @@
+{
+  "note": "Task-style queries with expected answers written by the maintainers before results were seen. They have been looked at during development, so they are all in the dev split.",
+  "tasks": [
+    {"id":"task:retry-backoff","keywords":["retry","exponential backoff"],"runtime":"node","good":["p-retry","async-retry","exponential-backoff","promise-retry","retry","cockatiel"],"builtin":null,"split":"dev"},
+    {"id":"task:retry-promise","keywords":["retry","promise"],"runtime":"node","good":["p-retry","promise-retry","async-retry","retry"],"builtin":null,"split":"dev"},
+    {"id":"task:csv-parse","keywords":["csv","parse"],"runtime":"browser","good":["papaparse","d3-dsv","csv-parse"],"builtin":null,"split":"dev"},
+    {"id":"task:uuid","keywords":["uuid"],"runtime":null,"good":["uuid","nanoid"],"builtin":["randomUUID"],"split":"dev"},
+    {"id":"task:deep-clone","keywords":["deep clone"],"runtime":null,"good":["rfdc","klona","lodash.clonedeep","clone-deep","just-clone","fast-copy"],"builtin":["structuredClone"],"split":"dev"},
+    {"id":"task:debounce","keywords":["debounce"],"runtime":"browser","good":["lodash.debounce","lodash","debounce","just-debounce-it","throttle-debounce","es-toolkit","perfect-debounce","lodash-es"],"builtin":null,"split":"dev"},
+    {"id":"task:schema-validation","keywords":["schema","validation"],"runtime":null,"good":["zod","ajv","valibot","joi","yup","superstruct","@sinclair/typebox","arktype"],"builtin":null,"split":"dev"},
+    {"id":"task:markdown","keywords":["markdown","render"],"runtime":null,"good":["marked","markdown-it","micromark","remark","unified","showdown","snarkdown","remark-parse"],"builtin":null,"split":"dev"},
+    {"id":"task:slugify","keywords":["slugify"],"runtime":null,"good":["slugify","@sindresorhus/slugify","slug"],"builtin":null,"split":"dev"},
+    {"id":"task:date-format","keywords":["date","format"],"runtime":null,"good":["date-fns","dayjs","luxon"],"builtin":["Intl.DateTimeFormat","toLocaleDateString"],"split":"dev"},
+    {"id":"task:cli-args","keywords":["command line arguments","parse"],"runtime":"node","good":["commander","yargs","minimist","mri","meow","cac","arg","citty","yargs-parser"],"builtin":["parseArgs"],"split":"dev"},
+    {"id":"task:glob","keywords":["glob"],"runtime":"node","good":["tinyglobby","fast-glob","globby","glob"],"builtin":["fs.glob","fs/promises glob","fsPromises.glob"],"split":"dev"},
+    {"id":"task:sleep","keywords":["sleep"],"runtime":null,"good":["delay"],"builtin":["timers/promises","setTimeout"],"split":"dev"},
+    {"id":"task:dotenv","keywords":["environment variables","load"],"runtime":"node","good":["dotenv","@dotenvx/dotenvx"],"builtin":["loadEnvFile","--env-file"],"split":"dev"},
+    {"id":"task:concurrency","keywords":["concurrency","limit"],"runtime":null,"good":["p-limit","p-queue","bottleneck","async","p-map"],"builtin":null,"split":"dev"},
+    {"id":"task:http-client","keywords":["http client"],"runtime":"node","good":["axios","got","ky","undici","node-fetch","ofetch","superagent"],"builtin":["fetch()","global fetch","built-in fetch","native fetch"],"split":"dev"},
+    {"id":"task:left-pad","keywords":["left pad"],"runtime":null,"good":["left-pad"],"builtin":["padStart"],"split":"dev"},
+    {"id":"task:rate-limit","keywords":["rate limit","express"],"runtime":"node","good":["express-rate-limit","rate-limiter-flexible"],"builtin":null,"split":"dev"},
+    {"id":"task:sanitize-html","keywords":["sanitize","html"],"runtime":"browser","good":["dompurify","isomorphic-dompurify","sanitize-html","xss"],"builtin":null,"split":"dev"},
+    {"id":"task:image-resize","keywords":["image","resize"],"runtime":"node","good":["sharp","jimp"],"builtin":null,"split":"dev"},
+    {"id":"task:markdown-parser","keywords":["markdown","parser"],"runtime":"node","good":["marked","markdown-it","micromark","remark-parse","mdast-util-from-markdown","commonmark","unified","remark"],"builtin":null,"split":"dev"},
+    {"id":"task:color-contrast","keywords":["color","contrast"],"runtime":"node","good":["wcag-contrast","chroma-js","colord","color","tinycolor2","polished","apca-w3","get-contrast","color-contrast-checker"],"builtin":null,"split":"dev"},
+    {"id":"task:qr-code","keywords":["qr code","generate"],"runtime":"node","good":["qrcode","qrcode-generator","qr-code-styling","uqr","qr-image","qrcode-svg"],"builtin":null,"split":"dev"},
+    {"id":"task:cron","keywords":["cron","schedule"],"runtime":"node","good":["node-cron","cron","node-schedule","croner","toad-scheduler","bree","agenda"],"builtin":null,"split":"dev"},
+    {"id":"task:yaml","keywords":["yaml","parse"],"runtime":"node","good":["yaml","js-yaml"],"builtin":null,"split":"dev"},
+    {"id":"task:emoji","keywords":["emoji","replace"],"runtime":"node","good":["node-emoji","emoji-regex","emojibase","emoji-toolkit","gemoji"],"builtin":null,"split":"dev"},
+    {"id":"task:pdf","keywords":["pdf","generate"],"runtime":"node","good":["pdfkit","jspdf","pdf-lib","pdfmake"],"builtin":null,"split":"dev"},
+    {"id":"task:text-diff","keywords":["diff","text"],"runtime":"node","good":["diff","fast-diff","diff-match-patch","diff-sequences"],"builtin":null,"split":"dev"}
+  ]
+}
