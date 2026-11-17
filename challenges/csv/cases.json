@@ -1,0 +1,72 @@
+[
+  {
+    "id": "plain",
+    "rule": "The easy one",
+    "why": "A header and two rows. Everything should pass this.",
+    "csv": "name,email\nAda,ada@example.test\nLin,lin@example.test\n",
+    "expected": [{ "name": "Ada", "email": "ada@example.test" }, { "name": "Lin", "email": "lin@example.test" }]
+  },
+  {
+    "id": "quoted-comma",
+    "rule": "RFC 4180, rule 6",
+    "why": "A field that contains a comma is wrapped in quotes. Customers named \"Smith, Jane\" exist.",
+    "csv": "name,email\n\"Smith, Jane\",jane@example.test\nLin,lin@example.test\n",
+    "expected": [{ "name": "Smith, Jane", "email": "jane@example.test" }, { "name": "Lin", "email": "lin@example.test" }]
+  },
+  {
+    "id": "escaped-quote",
+    "rule": "RFC 4180, rule 7",
+    "why": "A quote inside a quoted field is written twice.",
+    "csv": "name,email\n\"Jane \"\"JJ\"\" Smith\",jane@example.test\n",
+    "expected": [{ "name": "Jane \"JJ\" Smith", "email": "jane@example.test" }]
+  },
+  {
+    "id": "newline-in-field",
+    "rule": "RFC 4180, rule 6",
+    "why": "A quoted field may contain a line break. Addresses do this all the time.",
+    "csv": "name,address\nAda,\"1 Main St\nSpringfield\"\nLin,2 Side St\n",
+    "expected": [{ "name": "Ada", "address": "1 Main St\nSpringfield" }, { "name": "Lin", "address": "2 Side St" }]
+  },
+  {
+    "id": "crlf",
+    "rule": "RFC 4180, rule 1",
+    "why": "The standard line ending is CRLF. Windows and Excel write it.",
+    "csv": "name,email\r\nAda,ada@example.test\r\nLin,lin@example.test\r\n",
+    "expected": [{ "name": "Ada", "email": "ada@example.test" }, { "name": "Lin", "email": "lin@example.test" }]
+  },
+  {
+    "id": "no-trailing-newline",
+    "rule": "RFC 4180, rule 2",
+    "why": "The last record may or may not end with a line break.",
+    "csv": "name,email\nAda,ada@example.test",
+    "expected": [{ "name": "Ada", "email": "ada@example.test" }]
+  },
+  {
+    "id": "empty-fields",
+    "rule": "Real exports",
+    "why": "Missing values are empty strings, not missing columns.",
+    "csv": "name,email,phone\nAda,,\nLin,lin@example.test,555-0100\n",
+    "expected": [{ "name": "Ada", "email": "", "phone": "" }, { "name": "Lin", "email": "lin@example.test", "phone": "555-0100" }]
+  },
+  {
+    "id": "trailing-blank-line",
+    "rule": "Real exports",
+    "why": "Files often end with an extra blank line. It is not a customer.",
+    "csv": "name,email\nAda,ada@example.test\n\n",
+    "expected": [{ "name": "Ada", "email": "ada@example.test" }]
+  },
+  {
+    "id": "byte-order-mark",
+    "rule": "Real exports",
+    "why": "Excel's \"CSV UTF-8\" export starts with an invisible byte order mark. It is not part of the first header.",
+    "csv": "﻿name,email\nAda,ada@example.test\n",
+    "expected": [{ "name": "Ada", "email": "ada@example.test" }]
+  },
+  {
+    "id": "spaces-kept",
+    "rule": "RFC 4180, rule 4",
+    "why": "Spaces are part of a field and must not be trimmed away.",
+    "csv": "name,note\nAda, two spaces \nLin,none\n",
+    "expected": [{ "name": "Ada", "note": " two spaces " }, { "name": "Lin", "note": "none" }]
+  }
+]

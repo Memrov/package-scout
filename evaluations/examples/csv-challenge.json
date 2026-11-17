@@ -1,0 +1,166 @@
+{
+  "title": "The CSV challenge: ten legal CSV files against hand-rolled parsers and Scout's picks",
+  "package": {
+    "name": "papaparse",
+    "version": "5.7.1"
+  },
+  "files": {
+    "package.json": "{\n  \"name\": \"package-scout-csv-challenge\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"description\": \"Ten legal CSV files against hand-rolled parsers and the packages Scout picks.\",\n  \"scripts\": { \"challenge\": \"node run.mjs\" },\n  \"dependencies\": { \"csv-parse\": \"7.0.3\", \"fast-csv\": \"5.0.8\", \"papaparse\": \"5.7.1\" }\n}\n",
+    "run.mjs": "#!/usr/bin/env node\n// The CSV challenge: ten small, legal CSV files against any parser.\n//\n//   node run.mjs                     run the built-in entrants\n//   node run.mjs ./my-parser.mjs     add yours: export `parse(text)` returning an array of row objects\n//   node run.mjs --strict            exit 1 unless every one of Scout's picks passes every file\n//   node run.mjs --out results.json  also save the results as JSON\nimport assert from 'node:assert/strict';\nimport { mkdir, readFile, writeFile } from 'node:fs/promises';\nimport path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\n\nconst here = path.dirname(fileURLToPath(import.meta.url));\nexport const ENTRANTS = [\n  { id: 'split', label: 'The quick way: `split(\",\")`', kind: 'hand-rolled' },\n  { id: 'regex', label: 'The clever way: a regex', kind: 'hand-rolled' },\n  { id: 'state-machine', label: 'The careful way: a state machine', kind: 'hand-rolled' },\n  { id: 'papaparse', label: '`papaparse`', kind: 'scout' },\n  { id: 'csv-parse', label: '`csv-parse`', kind: 'scout' },\n  { id: 'fast-csv', label: '`fast-csv`', kind: 'scout' },\n];\n\n// Lines you would own: everything that is not blank and not a comment.\nconst linesOwned = source => source.split('\\n').filter(line => line.trim() && !line.trim().startsWith('//')).length;\n\nasync function installedVersion(name) {\n  try { return JSON.parse(await readFile(path.join(here, 'node_modules', name, 'package.json'), 'utf8')).version; }\n  catch { return null; }\n}\n\nexport async function score(parse, cases) {\n  const failed = [];\n  for (const item of cases) {\n    try {\n      // A JSON round trip compares plain data, whatever object type a parser returns.\n      assert.deepStrictEqual(JSON.parse(JSON.stringify(await parse(item.csv))), item.expected);\n    } catch (error) {\n      failed.push({ id: item.id, reason: error instanceof assert.AssertionError ? 'wrong rows' : `threw: ${String(error.message).slice(0, 120)}` });\n    }\n  }\n  return { passed: cases.length - failed.length, failed };\n}\n\nexport async function runChallenge({ cases, extra = [] }) {\n  const entrants = [\n    ...ENTRANTS.map(entrant => ({ ...entrant, file: path.join(here, 'entrants', `${entrant.id}.mjs`) })),\n    ...extra.map(file => ({ id: path.basename(file), label: `Yours: \\`${path.basename(file)}\\``, kind: 'yours', file: path.resolve(file) })),\n  ];\n  const results = [];\n  for (const entrant of entrants) {\n    const result = { id: entrant.id, label: entrant.label, kind: entrant.kind, lines: linesOwned(await readFile(entrant.file, 'utf8')) };\n    if (entrant.kind === 'scout') result.version = await installedVersion(entrant.id);\n    try {\n      const module = await import(pathToFileURL(entrant.file).href);\n      const parse = module.parse ?? module.default;\n      if (typeof parse !== 'function') throw new Error('export a function named `parse`');\n      Object.assign(result, await score(parse, cases));\n    } catch (error) {\n      result.skipped = entrant.kind === 'scout' && error.code === 'ERR_MODULE_NOT_FOUND' ? 'not installed: run `npm install` in this folder' : String(error.message).slice(0, 160);\n    }\n    results.push(result);\n  }\n  return results;\n}\n\nexport function table(results, total) {\n  const rows = results.map(result => result.skipped\n    ? `| ${result.label} | ${result.lines} | skipped | ${result.skipped} |`\n    : `| ${result.label}${result.version ? ` ${result.version}` : ''} | ${result.lines} | ${result.passed} of ${total} | ${result.failed.map(failure => failure.id).join(', ') || 'nothing'} |`);\n  return ['| Parser | Lines you own | Files parsed correctly | Gets wrong |', '| --- | ---: | ---: | --- |', ...rows].join('\\n');\n}\n\nasync function main() {\n  const argv = process.argv.slice(2);\n  const strict = argv.includes('--strict');\n  const out = argv.includes('--out') ? argv[argv.indexOf('--out') + 1] : null;\n  const extra = argv.filter((value, i) => !value.startsWith('--') && argv[i - 1] !== '--out');\n  const cases = JSON.parse(await readFile(process.env.EVALUATION_INPUT ?? path.join(here, 'cases.json'), 'utf8'));\n  const results = await runChallenge({ cases, extra });\n  const markdown = table(results, cases.length);\n  console.log(`\\nThe CSV challenge: ${cases.length} small, legal CSV files.\\n\\n${markdown}\\n`);\n  for (const result of results.filter(entry => entry.kind === 'yours' && !entry.skipped)) {\n    console.log(result.passed === cases.length\n      ? `${result.id}: ${result.passed} of ${cases.length}. Respect. It is ${result.lines} lines, and they are yours forever.`\n      : `${result.id}: ${result.passed} of ${cases.length}. Scout knows a package for that.`);\n  }\n  const report = { node: process.version, files: cases.map(({ id, rule }) => ({ id, rule })), results };\n  for (const target of [out, process.env.EVALUATION_RESULTS].filter(Boolean)) await writeFile(target, JSON.stringify(report, null, 2) + '\\n');\n  if (process.env.EVALUATION_ARTIFACTS) {\n    await mkdir(process.env.EVALUATION_ARTIFACTS, { recursive: true });\n    await writeFile(path.join(process.env.EVALUATION_ARTIFACTS, 'results.md'), markdown + '\\n');\n  }\n  // Decided before the first run: every package Scout puts first must parse every file.\n  const letDown = results.filter(result => result.kind === 'scout' && (result.skipped || result.passed !== cases.length));\n  if (strict && letDown.length) {\n    console.error(`Strict mode: ${letDown.map(result => result.id).join(', ')} did not parse every file.`);\n    process.exitCode = 1;\n  }\n}\n\nif (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();\n",
+    "entrants/split.mjs": "// The quick way: split the lines, split the commas.\nexport function parse(text) {\n  const [header, ...lines] = text.trim().split('\\n');\n  const keys = header.split(',');\n  return lines.map(line => Object.fromEntries(line.split(',').map((value, i) => [keys[i], value])));\n}\n",
+    "entrants/regex.mjs": "// The clever way: a lookahead that only splits on commas outside quotes.\nconst COMMA_OUTSIDE_QUOTES = /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/;\nconst unquote = cell => cell.replace(/^\"(.*)\"$/s, '$1').replace(/\"\"/g, '\"');\n\nexport function parse(text) {\n  const [header, ...lines] = text.trim().split(/\\r?\\n/);\n  const keys = header.split(COMMA_OUTSIDE_QUOTES).map(unquote);\n  return lines.map(line => Object.fromEntries(line.split(COMMA_OUTSIDE_QUOTES).map((cell, i) => [keys[i], unquote(cell)])));\n}\n",
+    "entrants/state-machine.mjs": "// The careful way: read one character at a time and track whether we are inside quotes.\n// Written with RFC 4180 open, by someone who had already seen the test files.\nexport function parse(text) {\n  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);\n  const rows = [];\n  let row = [];\n  let field = '';\n  let quoted = false;\n  let sawQuote = false;\n  const endField = () => { row.push(field); field = ''; sawQuote = false; };\n  const endRow = () => {\n    endField();\n    if (row.length > 1 || row[0] !== '') rows.push(row);\n    row = [];\n  };\n  for (let i = 0; i < text.length; i++) {\n    const char = text[i];\n    if (quoted) {\n      if (char !== '\"') field += char;\n      else if (text[i + 1] === '\"') { field += '\"'; i++; }\n      else quoted = false;\n    } else if (char === '\"' && field === '' && !sawQuote) {\n      quoted = true;\n      sawQuote = true;\n    } else if (char === ',') {\n      endField();\n    } else if (char === '\\n' || char === '\\r') {\n      if (char === '\\r' && text[i + 1] === '\\n') i++;\n      endRow();\n    } else {\n      field += char;\n    }\n  }\n  if (field !== '' || sawQuote || row.length) endRow();\n  const [keys = [], ...records] = rows;\n  return records.map(record => Object.fromEntries(keys.map((key, i) => [key, record[i] ?? ''])));\n}\n",
+    "entrants/papaparse.mjs": "// Scout's pick for `csv parser` in the browser.\nimport Papa from 'papaparse';\n\nexport const parse = text => Papa.parse(text, { header: true, skipEmptyLines: true }).data;\n",
+    "entrants/csv-parse.mjs": "// Scout's pick for `csv` on Node.\nimport { parse as parseCsv } from 'csv-parse/sync';\n\nexport const parse = text => parseCsv(text, { columns: true, skip_empty_lines: true, bom: true });\n",
+    "entrants/fast-csv.mjs": "// Scout's pick for `csv parser` on Node. It streams, so collect the rows.\nimport { parseString } from 'fast-csv';\n\nexport const parse = text => new Promise((resolve, reject) => {\n  const rows = [];\n  parseString(text, { headers: true, ignoreEmpty: true })\n    .on('error', reject)\n    .on('data', row => rows.push(row))\n    .on('end', () => resolve(rows));\n});\n"
+  },
+  "input": [
+    {
+      "id": "plain",
+      "rule": "The easy one",
+      "why": "A header and two rows. Everything should pass this.",
+      "csv": "name,email\nAda,ada@example.test\nLin,lin@example.test\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "ada@example.test"
+        },
+        {
+          "name": "Lin",
+          "email": "lin@example.test"
+        }
+      ]
+    },
+    {
+      "id": "quoted-comma",
+      "rule": "RFC 4180, rule 6",
+      "why": "A field that contains a comma is wrapped in quotes. Customers named \"Smith, Jane\" exist.",
+      "csv": "name,email\n\"Smith, Jane\",jane@example.test\nLin,lin@example.test\n",
+      "expected": [
+        {
+          "name": "Smith, Jane",
+          "email": "jane@example.test"
+        },
+        {
+          "name": "Lin",
+          "email": "lin@example.test"
+        }
+      ]
+    },
+    {
+      "id": "escaped-quote",
+      "rule": "RFC 4180, rule 7",
+      "why": "A quote inside a quoted field is written twice.",
+      "csv": "name,email\n\"Jane \"\"JJ\"\" Smith\",jane@example.test\n",
+      "expected": [
+        {
+          "name": "Jane \"JJ\" Smith",
+          "email": "jane@example.test"
+        }
+      ]
+    },
+    {
+      "id": "newline-in-field",
+      "rule": "RFC 4180, rule 6",
+      "why": "A quoted field may contain a line break. Addresses do this all the time.",
+      "csv": "name,address\nAda,\"1 Main St\nSpringfield\"\nLin,2 Side St\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "address": "1 Main St\nSpringfield"
+        },
+        {
+          "name": "Lin",
+          "address": "2 Side St"
+        }
+      ]
+    },
+    {
+      "id": "crlf",
+      "rule": "RFC 4180, rule 1",
+      "why": "The standard line ending is CRLF. Windows and Excel write it.",
+      "csv": "name,email\r\nAda,ada@example.test\r\nLin,lin@example.test\r\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "ada@example.test"
+        },
+        {
+          "name": "Lin",
+          "email": "lin@example.test"
+        }
+      ]
+    },
+    {
+      "id": "no-trailing-newline",
+      "rule": "RFC 4180, rule 2",
+      "why": "The last record may or may not end with a line break.",
+      "csv": "name,email\nAda,ada@example.test",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "ada@example.test"
+        }
+      ]
+    },
+    {
+      "id": "empty-fields",
+      "rule": "Real exports",
+      "why": "Missing values are empty strings, not missing columns.",
+      "csv": "name,email,phone\nAda,,\nLin,lin@example.test,555-0100\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "",
+          "phone": ""
+        },
+        {
+          "name": "Lin",
+          "email": "lin@example.test",
+          "phone": "555-0100"
+        }
+      ]
+    },
+    {
+      "id": "trailing-blank-line",
+      "rule": "Real exports",
+      "why": "Files often end with an extra blank line. It is not a customer.",
+      "csv": "name,email\nAda,ada@example.test\n\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "ada@example.test"
+        }
+      ]
+    },
+    {
+      "id": "byte-order-mark",
+      "rule": "Real exports",
+      "why": "Excel's \"CSV UTF-8\" export starts with an invisible byte order mark. It is not part of the first header.",
+      "csv": "﻿name,email\nAda,ada@example.test\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "email": "ada@example.test"
+        }
+      ]
+    },
+    {
+      "id": "spaces-kept",
+      "rule": "RFC 4180, rule 4",
+      "why": "Spaces are part of a field and must not be trimmed away.",
+      "csv": "name,note\nAda, two spaces \nLin,none\n",
+      "expected": [
+        {
+          "name": "Ada",
+          "note": " two spaces "
+        },
+        {
+          "name": "Lin",
+          "note": "none"
+        }
+      ]
+    }
+  ],
+  "run": "node run.mjs --strict"
+}

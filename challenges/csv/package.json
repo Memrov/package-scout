@@ -1,0 +1,9 @@
+{
+  "name": "package-scout-csv-challenge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ten legal CSV files against hand-rolled parsers and the packages Scout picks.",
+  "scripts": { "challenge": "node run.mjs" },
+  "dependencies": { "csv-parse": "7.0.3", "fast-csv": "5.0.8", "papaparse": "5.7.1" }
+}
