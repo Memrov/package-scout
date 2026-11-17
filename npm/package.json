@@ -1,0 +1,20 @@
+{
+  "name": "@memrov/package-scout",
+  "version": "1.0.0",
+  "description": "Find npm packages or platform built-ins before writing custom code. A deterministic MCP server with live npm and deps.dev evidence.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": { "name": "Memrov", "url": "https://github.com/Memrov" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Memrov/package-scout.git",
+    "directory": "npm"
+  },
+  "homepage": "https://github.com/Memrov/package-scout#readme",
+  "bugs": { "url": "https://github.com/Memrov/package-scout/issues" },
+  "keywords": ["npm", "mcp", "mcp-server", "package-discovery", "developer-tools", "node"],
+  "engines": { "node": ">=24.3.0" },
+  "bin": { "package-scout": "./server.mjs" },
+  "files": ["server.mjs", "README.md", "LICENSE"],
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org" }
+}

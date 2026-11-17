@@ -1,0 +1,48 @@
+name: Publish npm package
+
+on:
+  push:
+    tags: ['npm-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Install locked development and challenge dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix challenges/csv
+      - name: Verify the release
+        run: |
+          npm run check
+          npm test
+          npm run build
+          npm run validate
+          release_version=$(node -p "JSON.parse(require('node:fs').readFileSync('npm/package.json', 'utf8')).version")
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "npm-v$release_version" ]; then
+            echo 'Release tag does not match npm/package.json' >&2
+            exit 1
+          fi
+      - name: Publish with npm trusted publishing and provenance
+        run: npm publish ./npm --access public --provenance --ignore-scripts
+
