@@ -101,3 +101,9 @@ supported proxy configuration, such as `NODE_USE_ENV_PROXY=1` on current Node
 The plugin follows the official [creation guide](https://code.claude.com/docs/en/plugins/create),
 [component reference](https://code.claude.com/docs/en/plugins/components), and
 [marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference).
+
+The [2026-11-17 verification record](claude-code-plugin-verification-2026-11-17.json)
+preserves the tested source commit, installed versions and live SDK results.
+Claude Code's native connection check passed. Conversational skill invocation
+was not tested because no Claude model account was signed in in the test
+environment; macOS and Windows were not exercised.

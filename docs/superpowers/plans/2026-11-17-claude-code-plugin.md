@@ -8,7 +8,7 @@
 
 **Observed packaging correction:** The initial root-directory release worked, but an actual GitHub install showed Claude Code automatically installing 45 MB of repository development dependencies. Its official loading documentation confirms this cannot be disabled for a root with package.json and a lockfile. The isolated distribution fixes that behavior; `npm test` checks generated-file freshness and runs the real bundled transport.
 
-**Tech Stack:** Node.js 24.3+, native type stripping, Claude Code manifests and skills, Node's test runner.
+**Tech Stack:** Node.js 24.3+, esbuild for the distributable, Claude Code manifests and skills, Node's test runner.
 
 **Spec:** The conversation handoff and user request: install the official `plugin-dev` helper, bundle the server, provide a two-command install and `/package-scout:scout`.
 
@@ -50,5 +50,7 @@
 - [x] Add a namespaced skill using the shared discovery guidance and exact plugin MCP tool names.
 - [x] Document `/plugin marketplace add Memrov/package-scout`, `/plugin install package-scout@package-scout`, prerequisites and development commands.
 - [x] Run Claude Code's strict plugin/marketplace validation and inspect the discovered components.
-- [ ] Commit and push the verified source, install from GitHub, and verify the installed copy with real MCP calls.
-- [ ] Report installed versions and any host/model verification limits.
+- [x] Commit and push the verified source, install from GitHub, and verify the installed copy with real MCP calls.
+- [x] Report installed versions and any host/model verification limits.
+
+Verification is preserved in `docs/claude-code-plugin-verification-2026-11-17.json`: all 88 tests passed; strict plugin and marketplace validation passed without findings; native Claude Code reported the GitHub-installed v1.0.1 MCP server connected; the official MCP SDK exercised its live tools. Claude was not signed in for a conversational skill invocation.

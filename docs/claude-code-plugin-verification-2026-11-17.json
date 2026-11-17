@@ -1,0 +1,53 @@
+{
+  "checked_at": "2026-11-17T05:42:24.534Z",
+  "source_commit": "1680c5450d19b51d755bdc417a60d714aaf7c0bb",
+  "installation_source": "https://github.com/Memrov/package-scout",
+  "plugin_id": "package-scout@package-scout",
+  "plugin_version": "1.0.1",
+  "claude_code_version": "2.1.326",
+  "development_helper": {
+    "id": "plugin-dev@claude-plugins-official",
+    "version": "0.1.2",
+    "installed": true
+  },
+  "node_version": "24.22.1",
+  "mcp_sdk_version": "1.32.2",
+  "checks": {
+    "unit_tests_passed": 88,
+    "unit_tests_failed": 0,
+    "unit_tests_skipped": 0,
+    "type_check": "passed",
+    "worker_build_and_artifact_validation": "passed",
+    "plugin_bundle_freshness": "passed",
+    "strict_plugin_and_marketplace_validation": "passed",
+    "github_marketplace_install_and_update": "passed",
+    "native_claude_mcp_health": "Connected",
+    "installed_without_node_modules_or_lockfile": true,
+    "independent_code_review": "no actionable findings"
+  },
+  "live_mcp_sdk": {
+    "checked_at": "2026-11-17T05:42:24.534Z",
+    "plugin_version": "1.0.1",
+    "server": {
+      "name": "package-scout",
+      "version": "3.2.0"
+    },
+    "tools": [
+      "search_packages",
+      "get_package_details"
+    ],
+    "builtin": "String.prototype.padStart()",
+    "verdict": "Scout's pick: papaparse@5.7.1. 25.5M downloads a week, MIT, no known direct advisories. That's the whole job.",
+    "compact_bytes": 2306,
+    "full_bytes": 16526,
+    "full_reused_cache": true,
+    "inspected": "papaparse",
+    "inspected_version": "5.7.1",
+    "readme_chars": 3392,
+    "warnings": []
+  },
+  "verification_limits": [
+    "No authenticated Claude model session was available, so the skill component was discovered and its server exercised, but no conversational invocation of /package-scout:scout was tested.",
+    "Verification was performed on Linux with Node 24.22.1; macOS and Windows were not exercised."
+  ]
+}
