@@ -98,7 +98,7 @@ export class PackageSources {
   }
 
   async searchCandidates(term: string, size: number): Promise<Json[]> {
-    if (term.length < 2 || term.length > 64 || !term.trim() || !Number.isInteger(size) || size < 1 || size > 10) {
+    if (term.length < 2 || term.length > 64 || !term.trim() || !Number.isInteger(size) || size < 1 || size > 100) {
       throw new Error('Invalid npm search parameters');
     }
     const query = new URLSearchParams({ text: term, size: String(size) });
@@ -129,7 +129,7 @@ export class PackageSources {
     const data = await this.request(`${NPM_API}/${encodeURIComponent(packageName(name))}`);
     if (data.name !== name) throw new Error('npm returned a different package');
     const text = typeof data.readme === 'string' ? data.readme : null;
-    return { text: text?.slice(0, 12000) ?? null, truncated: text ? text.length > 12000 : false, scope: 'package-level README; may not describe a historical version', source_url: `${NPM_API}/${encodeURIComponent(name)}` };
+    return { status: text?.trim() ? 'available' : 'missing', text: text?.slice(0, 12000) ?? null, truncated: text ? text.length > 12000 : false, scope: 'package-level README; may not describe a historical version', source_url: `${NPM_API}/${encodeURIComponent(name)}` };
   }
 
   async dependencies(name: string, version: string): Promise<Json> {

@@ -1,17 +1,20 @@
 import { object, type Json } from './package-sources.ts';
+import { adoptionTier } from './relevance.ts';
+
+const RELEVANCE = ['keyword_match_fraction', 'package_role_preference', 'descriptive_match_fraction', 'runtime_preference', 'adoption_tier'];
 
 export const RANKING_PROFILES = {
   vibe: {
     goal: 'Quick start, using observed package footprint as a proxy; integration effort is not measured.',
-    priorities: ['keyword_match_fraction', 'direct_runtime_dependency_count', 'declared_install_hook_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+    priorities: [...RELEVANCE, 'direct_runtime_dependency_count', 'declared_install_hook_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
   },
   production: {
     goal: 'Prefer observed security practices and maintenance evidence after compatibility and risk filters.',
-    priorities: ['keyword_match_fraction', 'scorecard_score', 'maintained_check_score', 'weekly_downloads', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
+    priorities: [...RELEVANCE, 'scorecard_score', 'maintained_check_score', 'weekly_downloads', 'direct_runtime_dependency_count', 'declared_install_hook_count'],
   },
   internal: {
     goal: 'Prefer a smaller observed installation footprint; external services and operating costs are not assessed.',
-    priorities: ['keyword_match_fraction', 'declared_install_hook_count', 'direct_runtime_dependency_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
+    priorities: [...RELEVANCE, 'declared_install_hook_count', 'direct_runtime_dependency_count', 'scorecard_score', 'maintained_check_score', 'weekly_downloads'],
   },
 } as const;
 export type RankingProfile = keyof typeof RANKING_PROFILES;
@@ -29,7 +32,7 @@ export const PROFILES = {
 } as const;
 
 export const SCORING = {
-  version: '2.0.0', method: 'ordered_evidence', aggregate_score: null,
+  version: '3.0.0', method: 'ordered_evidence', aggregate_score: null,
   meaning: 'Profile-specific lexicographic ordering of observed evidence. No invented composite quality or integration-effort score.',
   profiles: RANKING_PROFILES,
   smaller_is_preferred: ['direct_runtime_dependency_count', 'declared_install_hook_count'],
@@ -37,6 +40,7 @@ export const SCORING = {
   tie_breaker: 'Original discovery position, then package name.',
   scorecard: { source: 'OpenSSF Scorecard via deps.dev', scale: 10, methodology_url: 'https://github.com/ossf/scorecard#aggregate-score', selection: 'Lowest observed score among associated source repositories; raw scores are never aged, reweighted, or averaged here.' },
   limits: ['Profile priorities are product policies, not empirically calibrated weights.', 'Dependency counts and declared install hooks are footprint facts, not measured integration effort.', 'Release dates alone do not establish maintenance health; LFX Health Score is not computed.', 'Scorecard describes repository security practices, not package correctness or feature fit.'],
+  discovery: 'Keyword coverage, primary-library role hints, descriptive matches, runtime evidence, then weekly-download orders of magnitude precede profile preferences. Missing runtime declarations remain eligible and unverified. Use get_package_details for an exact package name.',
 };
 
 export function exclusionReasons(candidate: Json, args: Json): string[] {
@@ -78,6 +82,10 @@ export function qualityEvidence(candidate: Json, position: number, profile: Rank
   };
   const signals = {
     keyword_match_fraction: observedNumber(candidate.keyword_match_fraction, 1),
+    package_role_preference: observedNumber(candidate.package_role_preference, 1),
+    descriptive_match_fraction: observedNumber(candidate.descriptive_match_fraction, 1),
+    runtime_preference: observedNumber(candidate.runtime_preference, 2),
+    adoption_tier: adoptionTier(candidate.weekly_downloads),
     direct_runtime_dependency_count: observedNumber(candidate.direct_runtime_dependency_count),
     declared_install_hook_count: Array.isArray(candidate.declared_install_hooks) ? candidate.declared_install_hooks.length : null,
     scorecard_score: selected?.score ?? null,
@@ -87,7 +95,7 @@ export function qualityEvidence(candidate: Json, position: number, profile: Rank
   return {
     score: null, profile, method: SCORING.method, priorities: RANKING_PROFILES[profile].priorities, signals,
     discovery_position: position,
-    scorecard: selected ? { ...selected, age_days: dateAge(selected.assessed_at) } : null,
+    scorecard: selected ? { score: selected.score, assessed_at: selected.assessed_at ?? null, repository: selected.repository ?? null, source_repository: selected.source_repository, age_days: dateAge(selected.assessed_at) } : null,
     scorecard_coverage: { associated_repositories: repositories.length, scored_repositories: cards.length },
     maintenance: { maintained_check: maintained, health_score: null, status: maintained ? 'scorecard_check_available' : 'not_assessed', latest_release_at: candidate.published_at ?? null, release_age_days: dateAge(candidate.published_at) },
     integration_effort: { score: null, status: 'not_assessed', reason: 'No integration-effort scoring provider is configured. Footprint signals do not measure integration effort.' },

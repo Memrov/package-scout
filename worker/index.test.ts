@@ -8,13 +8,13 @@ import { object, type Json } from '../src/package-sources.ts';
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number };
+type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
 const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
 function upstream(packages: Package[], listed?: string[]) {
   const calls: string[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); calls.push(url.toString());
-    if (url.pathname === '/-/v1/search') return response({ objects: packages.filter(p => !listed || listed.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
+    if (url.pathname === '/-/v1/search') return response({ objects: packages.filter(p => !listed || listed.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description, keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
     if (url.host === 'api.npmjs.org') {
       const name = decodeURIComponent(url.pathname.split('/').at(-1)!);
       return response({ package: name, downloads: packages.find(p => p.name === name)?.downloads });
@@ -23,7 +23,7 @@ function upstream(packages: Package[], listed?: string[]) {
       const parts = url.pathname.split('/').map(decodeURIComponent);
       const p = packages.find(p => p.name === parts[1]);
       if (!p) return new Response('', { status: 404 });
-      return parts.length === 2 ? response({ name: p.name, readme: '# Usage\nInstall this package.' }) : response({ name: p.name, version: '1.0.0', description: p.description ?? 'CSV cache concurrency limit package for the browser', license: p.license ?? null, dependencies: p.dependencies, scripts: p.scripts,
+      return parts.length === 2 ? response({ name: p.name, readme: p.emptyReadme ? '' : '# Usage\nInstall this package.' }) : response({ name: p.name, version: '1.0.0', description: p.description ?? 'CSV cache concurrency limit package for the browser', license: p.license ?? null, dependencies: p.dependencies, scripts: p.scripts, ...p.manifest,
         ...(p.deprecated ? { deprecated: 'Use a maintained replacement.' } : {}) });
     }
     if (url.pathname.endsWith(':dependencies')) {
@@ -257,8 +257,9 @@ test('keyword, runtime and package-type filters reject unrelated popular results
     { name: 'browser-csv', downloads: 100000 },
   ]);
   const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'], runtime: 'browser' });
-  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['browser-csv']);
-  assert.deepEqual(result.filtered_counts, { keyword_mismatch: 1, package_type: 1, no_browser_declaration: 1 });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['browser-csv', 'server-csv']);
+  assert.equal(object((result.packages as Json[])[1].runtime_evidence).status, 'unknown');
+  assert.deepEqual(result.filtered_counts, { keyword_mismatch: 1, package_type: 1 });
 });
 
 test('catalog hints recover missed packages but use current manifests and download counts', async () => {
@@ -273,4 +274,103 @@ test('catalog hints recover missed packages but use current manifests and downlo
   assert.equal(candidate.weekly_downloads, 5000);
   assert.equal(object(candidate.relevance_evidence).discovery_source, 'catalog_hint');
   assert.ok(mock.calls.some(url => url.startsWith('https://api.npmjs.org/downloads/point/last-week/')));
+});
+
+test('browser discovery accepts web-framework peers and unknowns while rejecting explicit incompatibility', async () => {
+  const mock = upstream([
+    { name: 'react-editor', description: 'React editor', downloads: 10000, manifest: { peerDependencies: { react: '^19' } } },
+    { name: 'portable-editor', description: 'Portable editor', downloads: 10000 },
+    { name: 'server-editor', description: 'Server-only editor', downloads: 1000000 },
+    { name: 'disabled-editor', description: 'Editor', downloads: 10000, manifest: { browser: false } },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['editor'], runtime: 'browser' });
+  const packages = result.packages as Json[];
+  assert.deepEqual(packages.map(p => p.name), ['react-editor', 'portable-editor']);
+  assert.equal(object(packages[0].runtime_evidence).status, 'declared');
+  assert.equal(object(packages[1].runtime_evidence).status, 'unknown');
+  assert.equal(object(result.filtered_counts).runtime_incompatible, 2);
+});
+
+test('a wider metadata pool recovers candidates beyond the first ten without expanding manifest work', async () => {
+  const noise = Array.from({ length: 30 }, (_, i) => ({ name: `csv-choice-${i}`, description: 'CSV parser', downloads: 500 }));
+  const mock = upstream([...noise, { name: 'established-csv', description: 'CSV parser', downloads: 10000000 }]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.equal((result.packages as Json[])[0].name, 'established-csv');
+  assert.equal(result.candidates_considered, 31);
+  assert.equal(result.candidates_inspected, 10);
+  assert.equal(mock.calls.filter(url => url.endsWith('/latest')).length, 10);
+  assert.equal(new URL(mock.calls[0]).searchParams.get('size'), '100');
+  assert.ok(Number(object(object(result.meta).upstream_requests).total) <= 16);
+});
+
+test('primary libraries rank before unrequested adapters and error formatters', async () => {
+  const mock = upstream([
+    { name: 'schema-errors', description: 'JSON Schema validation error messages', downloads: 100000000, dependencies: {}, cardScore: 10 },
+    { name: 'schema-validator', description: 'JSON Schema validation', downloads: 1000000, dependencies: { one: '1' }, cardScore: 5 },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const result = await call(handler, 'search_packages', { keywords: ['schema', 'validation'], match_all_keywords: true });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['schema-validator', 'schema-errors']);
+  assert.equal(object((result.packages as Json[])[1].role_evidence).supporting, true);
+  const specific = await call(handler, 'search_packages', { keywords: ['schema', 'errors'], match_all_keywords: true });
+  assert.equal((specific.packages as Json[])[0].name, 'schema-errors');
+  assert.equal(object((specific.packages as Json[])[0].role_evidence).supporting, false);
+});
+
+test('name and description matches precede broad keyword tags', async () => {
+  const mock = upstream([
+    { name: 'concurrency-control', description: 'Limit concurrent tasks', downloads: 100000000, manifest: { keywords: ['rate', 'limit'] } },
+    { name: 'request-limiter', description: 'Request rate limit middleware', downloads: 1000000 },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['rate', 'limit'], match_all_keywords: true });
+  assert.equal((result.packages as Json[])[0].name, 'request-limiter');
+});
+
+test('adoption tiers prevent a tiny known footprint dominating established unknown footprints', async () => {
+  const mock = upstream([
+    { name: 'small-decimal', description: 'Decimal arithmetic', downloads: 500, dependencies: {} },
+    { name: 'established-decimal', description: 'Decimal arithmetic', downloads: 50000000 },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['decimal'], quality_profile: 'vibe' });
+  const first = (result.packages as Json[])[0];
+  assert.equal(first.name, 'established-decimal');
+  assert.equal(first.direct_runtime_dependency_count, null);
+});
+
+test('simple plurals retain useful matches without boosting a generic category name above relevance', async () => {
+  const mock = upstream([
+    { name: 'chart', description: 'A chart library', downloads: 500 },
+    { name: 'other-chart', description: 'A chart library', downloads: 1000000 },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  assert.equal((await call(handler, 'search_packages', { keywords: ['charts'] })).returned, 2);
+  assert.equal(((await call(handler, 'search_packages', { keywords: ['chart'] })).packages as Json[])[0].name, 'other-chart');
+});
+
+test('valid array export fallbacks do not crash runtime inspection and native peers stay explicit', async () => {
+  const mock = upstream([
+    { name: 'portable-image', description: 'Image compression', downloads: 10000, manifest: { exports: { '.': ['./index.js', { browser: './browser.js' }] } } },
+    { name: 'native-image', description: 'Image compression', downloads: 100000, manifest: { peerDependencies: { react: '*', 'react-native': '*' } } },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['image'], runtime: 'browser' });
+  assert.deepEqual((result.packages as Json[]).map(p => p.name), ['portable-image']);
+  assert.equal(object(result.filtered_counts).runtime_incompatible, 1);
+});
+
+test('search omits verbose Scorecard checks while exact details retain them', async () => {
+  const mock = upstream([{ name: 'csv-parser', downloads: 10000 }]);
+  const handler = createHandler({ ...mock, pause });
+  const search = await call(handler, 'search_packages', { keywords: ['csv'] });
+  const card = object(((search.packages as Json[])[0].repositories as Json[])[0].scorecard);
+  assert.equal(card.score, 7);
+  assert.equal(card.checks, undefined);
+  const details = await call(handler, 'get_package_details', { name: 'csv-parser' });
+  assert.equal((object((object(details.package).repositories as Json[])[0].scorecard).checks as Json[])[0].name, 'Maintained');
+});
+
+test('an empty README is explicitly missing and generates a warning', async () => {
+  const mock = upstream([{ name: 'empty-docs', emptyReadme: true }]);
+  const result = await call(createHandler({ ...mock, pause }), 'get_package_details', { name: 'empty-docs', include_readme: true });
+  assert.equal(object(result.readme).status, 'missing');
+  assert.match(String((result.warnings as string[])[0]), /no README/);
 });

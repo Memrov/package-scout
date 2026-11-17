@@ -7,7 +7,7 @@ A private ChatGPT plugin and a small hosted MCP for finding existing npm package
 `search_packages` returns up to three candidates. Parameters include:
 
 - `keywords`: short search keywords, combined length 2–64 characters.
-- `runtime`: `any`, `browser`, or `node`. Specific runtimes require an explicit declaration in the package's current registry metadata.
+- `runtime`: `any`, `browser`, or `node`. Prefer matching declarations, including web-framework peers. Explicit incompatibilities are excluded; missing declarations remain eligible with support marked unknown.
 - `quality_profile`: `vibe`, `production` (default), or `internal`. Legacy `balanced`, `established`, and `explore` requests remain supported.
 - `licenses_any`, `min_weekly_downloads`, `match_all_keywords`, `package_type`, and explicit deprecated/prerelease overrides.
 
@@ -38,9 +38,9 @@ Vibe, production, and internal share the same default filters: at least 100 week
 
 Registry names, descriptions and keyword lists must overlap the query. A caller may require all keywords. Library searches exclude recognizable workflow plugins, types-only packages and packages declared only as CLIs. Results are limited to one per known source repository.
 
-Ranking version 2 is implemented in `src/quality.ts`. It compares evidence in the following order, using each later criterion only to break a tie:
+Ranking version 3 is implemented in `src/quality.ts`. All profiles first compare keyword coverage, package-role hints, matches in names/descriptions, runtime evidence, and weekly-download orders of magnitude. Profile preferences then break ties:
 
-| Profile | Priorities after keyword-match fraction |
+| Profile | Priorities after the shared discovery criteria |
 | --- | --- |
 | `vibe` | Fewer declared runtime dependencies, fewer declared install hooks, upstream OpenSSF score, upstream Maintained check, weekly downloads. |
 | `production` | Upstream OpenSSF score, upstream Maintained check, weekly downloads, fewer declared runtime dependencies, fewer declared install hooks. |
@@ -48,17 +48,21 @@ Ranking version 2 is implemented in `src/quality.ts`. It compares evidence in th
 
 Observed values sort before unknown values for each criterion. Remaining ties preserve discovery order, then package name. This is an evidence-coverage preference, not an assertion that unmeasured packages are poor quality. The priorities are product policies, not empirically calibrated weights.
 
-OpenSSF scores, checks, dates, and source references retain their upstream values. When several associated source repositories have scores, ranking uses the lowest observed score and reports coverage. Scores are not discounted with age; age is reported separately. See [OpenSSF's scoring methodology](https://github.com/ossf/scorecard#aggregate-score). The LFX Health Score is not computed because maintainer and contributor data needed for that model is unavailable in the current pipeline.
+Role hints put unrequested adapters, error formatters, stores, specialized forks and framework support modules behind primary-library candidates. A caller explicitly requesting that role is not penalized. These are conservative text heuristics and remain visible in `role_evidence`; they do not prove that a package is a complete solution. `runtime_evidence` distinguishes declared, unknown and explicitly incompatible support.
+
+Use operation-specific keywords: `jwt` plus `verify`, or `request` plus `rate` plus `limit`. Tags alone may describe related functionality rather than the operation you need. The wider candidate retrieval and adoption tie-breaker borrow the simple textual-relevance/adoption pattern documented by [Algolia npm-search](https://github.com/algolia/npm-search#ranking). [npm's current search documentation](https://docs.npmjs.com/searching-for-and-choosing-packages-to-download/) explains why its neutral keyword ordering alone does not establish suitability. No competitor API is required.
+
+OpenSSF scores, checks, dates, and source references retain their upstream values. Search returns compact scores and dates; `get_package_details` retains the full check summaries. When several associated source repositories have scores, ranking uses the lowest observed score and reports coverage. Scores are not discounted with age; age is reported separately. See [OpenSSF's scoring methodology](https://github.com/ossf/scorecard#aggregate-score). The LFX Health Score is not computed because maintainer and contributor data needed for that model is unavailable in the current pipeline.
 
 The former 100-point composite is retired: `quality.score` is now `null`, and callers should read `quality.signals`, `quality.priorities`, `quality.scorecard`, and `scoring.version`. Missing signals remain `null`. `integration_effort` and `functional_evaluation` are explicitly not assessed; GitHub evaluation reports remain separate evidence. Dependency counts and declared install hooks are footprint facts, not an integration-effort score, proof of local processing, or a count of required external services. Unlisted implicit native builds are not detected by the hook count.
 
-Old stable packages remain eligible; release age is context and does not affect ordering. Runtime declarations can come from manifest fields, keywords or explicit descriptions and are returned with their source; they do not establish tested compatibility. Direct advisories exclude dependency advisories.
+Old stable packages remain eligible; release age is context and does not affect ordering. Runtime declarations can come from manifest fields, framework peers, keywords or explicit descriptions and are returned with their source; they do not establish tested compatibility. Direct advisories exclude dependency advisories. An empty registry README is explicitly marked missing and produces a warning.
 
 ## Sources, cache and costs
 
 npm provides keyword search, exact manifests, optional README content, and download statistics. deps.dev provides batched version/project facts and optional resolved dependency graphs. A small bundled catalog supplies discovery hints when npm search misses a known package; every selected hint is checked live before return.
 
-Each search inspects at most ten candidates and three catalog hints, with at most sixteen upstream requests. Fetches have a shared deadline, individual timeouts, response byte limits and bounded pagination. No automatic retries, package installs or package code execution occur.
+Each search retrieves up to 100 cheap npm search records and up to three catalog hints, selects at most ten for current-manifest inspection, and makes at most sixteen upstream requests. `candidates_considered` and `candidates_inspected` report those different stages. Fetches have a shared deadline, individual timeouts, response byte limits and bounded pagination. No automatic retries, package installs or package code execution occur.
 
 A bounded memory cache keeps successful searches for five minutes and inspections for fifteen minutes within a warm server instance. It stores at most 32 entries of at most 128 KiB each. Cache hits preserve original evidence dates and use no upstream calls. No provider-specific cache service or database is required. Entries contain public-source metadata indexed by hashed parameters. There is no D1, BigQuery, persistent user-query log, or server-side inference bill. Cache persistence across server instances and regions is best effort.
 
