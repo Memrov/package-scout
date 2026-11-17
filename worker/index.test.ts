@@ -586,6 +586,20 @@ test('a legacy manifest with array-style engines cannot abort a search', async (
   assert.equal(status('cordova-pdf'), 'unknown');
 });
 
+test('initialize negotiates a protocol version that stable MCP clients accept', async () => {
+  const handler = createHandler({ cache: null });
+  const version = async (params?: Json) => object((await rpc(handler, 'initialize', params)).result).protocolVersion;
+  assert.equal(await version({ protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'client', version: '1' } }), '2025-11-25');
+  assert.equal(await version({ protocolVersion: '2025-06-18' }), '2025-06-18');
+  assert.equal(await version({ protocolVersion: '2026-07-28' }), '2026-07-28');
+  // Unknown or unsupported requests get the server's latest, as the specification requires.
+  assert.equal(await version({ protocolVersion: '2024-11-05' }), '2026-07-28');
+  assert.equal(await version({ protocolVersion: 42 }), '2026-07-28');
+  assert.equal(await version(), '2026-07-28');
+  const initialized = await handler.fetch(new Request('https://scout.test/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) }));
+  assert.equal(initialized.status, 202);
+});
+
 // Short answers, verdicts and built-in platform answers.
 
 test('the default answer is compact: a verdict, the picks, and a fraction of the full evidence', async () => {
