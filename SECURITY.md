@@ -5,10 +5,9 @@ checking whether a reported issue still applies.
 
 ## Report a vulnerability
 
-Use [GitHub's private reporting form](https://github.com/Memrov/package-scout/security/advisories/new)
-when it is available. If private reporting is not enabled, open an issue asking
-for a private reporting channel, without including exploit details, credentials
-or other sensitive data.
+Use [GitHub's private reporting form](https://github.com/Memrov/package-scout/security/advisories/new).
+Private vulnerability reporting is enabled. Keep exploit details, credentials
+and other sensitive data out of public issues.
 
 Include the affected version or commit, a minimal reproduction, expected and
 observed behavior, and the likely impact. Do not open a public pull request

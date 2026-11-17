@@ -1,0 +1,108 @@
+{
+  "verified_at": "2026-11-17T08:08:49.331Z",
+  "source_commit": "d21263b5172d4b95738ce72655b5859d287f9021",
+  "npm": {
+    "name": "@memrov2/package-scout",
+    "version": "1.0.1",
+    "publisher": "memrov2",
+    "url": "https://www.npmjs.com/package/@memrov2/package-scout",
+    "tarball": "https://registry.npmjs.org/@memrov2/package-scout/-/package-scout-1.0.1.tgz",
+    "integrity": "sha512-kPjoBgw8PPfOjwRkNJbj4+A5dNH9/VcoRuZeZC00aFanmWaMqGc3zacJp5cRdYLHdVnpIyRLkvxLbF/yDeN2cg==",
+    "sha256": "55e8d5e285aa66cc838b5582cdf0f768164584ab9bab4147ae71ea10721543ea",
+    "bin": {
+      "package-scout": "server.mjs"
+    },
+    "registry_signature_verified": true,
+    "native_provenance_verified": true,
+    "attestations_url": "https://registry.npmjs.org/-/npm/v1/attestations/@memrov2%2fpackage-scout@1.0.1",
+    "publish_run": "https://github.com/Memrov/package-scout/actions/runs/44041423807",
+    "bootstrap_secret_removed": true
+  },
+  "github_release": {
+    "url": "https://github.com/Memrov/package-scout/releases/tag/release-v1.0.1",
+    "immutable": true,
+    "signing_run": "https://github.com/Memrov/package-scout/actions/runs/44041192165",
+    "slsa_predicate_type": "https://slsa.dev/provenance/v1",
+    "exact_registry_tarball_matches_signed_release": true,
+    "verified_repo": "Memrov/package-scout",
+    "verified_workflow": ".github/workflows/release.yml",
+    "verified_source_ref": "refs/tags/release-v1.0.1"
+  },
+  "codeql": {
+    "report_run": "https://github.com/Memrov/package-scout/actions/runs/44040845913",
+    "findings": 0,
+    "previous_alerts": [
+      9,
+      10
+    ],
+    "previous_alerts_state": "fixed"
+  },
+  "extended_fuzz": {
+    "run": "https://github.com/Memrov/package-scout/actions/runs/44042285878",
+    "properties": 5,
+    "cases_per_property": 10000,
+    "passed": true
+  },
+  "npm_installation_and_mcp": {
+    "checked_at": "2026-11-17T07:56:47.963Z",
+    "package": "@memrov2/package-scout@1.0.1",
+    "node": "v24.22.1",
+    "files": [
+      "LICENSE",
+      "README.md",
+      "package.json",
+      "server.mjs"
+    ],
+    "runtime_dependencies": [],
+    "command": "npm exec --offline -- package-scout",
+    "server": {
+      "name": "package-scout",
+      "version": "3.2.0"
+    },
+    "tools": [
+      "search_packages",
+      "get_package_details"
+    ],
+    "builtin": "String.prototype.padStart()",
+    "verdict": "Scout's pick: papaparse@5.7.1. 25.5M downloads a week, MIT, no known direct advisories. That's the whole job.",
+    "compact_bytes": 2306,
+    "full_bytes": 16526,
+    "full_reused_cache": true,
+    "inspected": "papaparse",
+    "inspected_version": "5.7.1",
+    "readme_chars": 3392,
+    "warnings": [],
+    "official_mcp_sdk_version": "1.32.2"
+  },
+  "claude_code_plugin": {
+    "checked_at": "2026-11-17T07:47:47.491Z",
+    "plugin_version": "1.0.3",
+    "server": {
+      "name": "package-scout",
+      "version": "3.2.0"
+    },
+    "tools": [
+      "search_packages",
+      "get_package_details"
+    ],
+    "builtin": "String.prototype.padStart()",
+    "verdict": "Scout's pick: papaparse@5.7.1. 25.5M downloads a week, MIT, no known direct advisories. That's the whole job.",
+    "compact_bytes": 2306,
+    "full_bytes": 16526,
+    "full_reused_cache": true,
+    "inspected": "papaparse",
+    "inspected_version": "5.7.1",
+    "readme_chars": 3392,
+    "warnings": []
+  },
+  "hosted_deployment": {
+    "checked_at": "2026-11-17T08:04:34.817Z",
+    "url": "https://package-scout-npm-20261116.dscott2017.chatgpt.site",
+    "source_commit": "d21263b5172d4b95738ce72655b5859d287f9021",
+    "authenticated_api": true,
+    "builtin": "String.prototype.padStart()",
+    "invalid_enum_rejected": true,
+    "verdict": "Scout's pick: papaparse@5.7.1. 25.5M downloads a week, MIT, no known direct advisories. That's the whole job.",
+    "chatgpt_plugin_search_verified": true
+  }
+}
