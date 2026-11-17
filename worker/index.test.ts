@@ -5,6 +5,9 @@ import { argumentsFor } from '../src/discovery.ts';
 import { compareCandidates, exclusionReasons, qualityEvidence, type RankingProfile } from '../src/quality.ts';
 import { object, type Json } from '../src/package-sources.ts';
 import { matchKeywords } from '../src/relevance.ts';
+import { PLATFORM, concept, platformAnswer } from '../src/platform.ts';
+import { compact, formatCount, verdictFor } from '../src/verdict.ts';
+import { createRequire } from 'node:module';
 
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
@@ -53,8 +56,9 @@ async function rpc(handler: ReturnType<typeof createHandler>, method: string, pa
   const res = await handler.fetch(new Request('https://scout.test/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) }));
   return await res.json() as Json;
 }
+// These tests inspect ranking evidence, so searches ask for detail=full unless a test says otherwise.
 async function call(handler: ReturnType<typeof createHandler>, name: string, args: Json) {
-  const envelope = await rpc(handler, 'tools/call', { name, arguments: args });
+  const envelope = await rpc(handler, 'tools/call', { name, arguments: name === 'search_packages' && args.detail === undefined ? { ...args, detail: 'full' } : args });
   const result = object(envelope.result);
   assert.equal(result.isError, false, JSON.stringify(result));
   return object(JSON.parse(object((result.content as unknown[])[0]).text as string));
@@ -541,7 +545,7 @@ test('a short mainstream result supplies valid niche retry arguments without los
   const result = await call(createHandler({ ...mock, pause }), 'search_packages', {
     keywords: ['csv'], runtime: 'browser', quality_profile: 'vibe', licenses_any: ['MIT'], include_prerelease: true,
   });
-  assert.deepEqual(result.next_search, { keywords: ['csv'], runtime: 'browser', niche: true, quality_profile: 'vibe', licenses_any: ['MIT'], include_prerelease: true });
+  assert.deepEqual(result.next_search, { keywords: ['csv'], runtime: 'browser', niche: true, quality_profile: 'vibe', licenses_any: ['MIT'], include_prerelease: true, detail: 'full' });
   const retry = argumentsFor('search_packages', result.next_search);
   assert.equal(retry.min_weekly_downloads, 0);
   assert.deepEqual(retry.licenses_any, ['MIT']);
@@ -564,4 +568,148 @@ test('niche retry preserves an explicit strict keyword constraint', async () => 
   const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv', 'parser'], match_all_keywords: true });
   assert.equal(object(result.next_search).match_all_keywords, true);
   assert.equal(argumentsFor('search_packages', result.next_search).match_all_keywords, true);
+});
+
+// Short answers, verdicts and built-in platform answers.
+
+test('the default answer is compact: a verdict, the picks, and a fraction of the full evidence', async () => {
+  const mock = upstream([
+    { name: 'papa', downloads: 25501733, dependencies: {}, description: 'CSV parser for the browser' },
+    { name: 'second-csv', downloads: 400000, dependencies: { one: '1' }, description: 'CSV parser for the browser' },
+    { name: 'third-csv', downloads: 50000, description: 'CSV parser for the browser' },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const short = await call(handler, 'search_packages', { keywords: ['csv'], detail: 'compact' });
+  const count = mock.calls.length;
+  const full = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.equal(mock.calls.length, count, 'compact and full answers share one cached lookup');
+  assert.equal(short.detail, 'compact');
+  assert.equal(short.verdict, full.verdict);
+  assert.match(String(short.verdict), /^Scout's pick: papa@1\.0\.0\. 25\.5M downloads a week, MIT, zero dependencies, no known direct advisories\. /);
+  assert.equal(short.platform, null);
+  const first = (short.packages as Json[])[0];
+  assert.deepEqual(Object.keys(first), ['name', 'version', 'install', 'description', 'weekly_downloads', 'licenses', 'dependencies', 'runtime', 'match', 'published_at', 'openssf_scorecard', 'npm_url', 'repository']);
+  assert.equal(first.install, 'npm install papa@1.0.0');
+  assert.equal(first.openssf_scorecard, 7);
+  assert.equal(first.repository, 'https://github.com/example/papa');
+  assert.equal(short.filtered_counts, undefined);
+  assert.equal(short.scoring, undefined);
+  assert.ok(object(short.meta).as_of);
+  assert.ok(object(short.attribution).provider);
+  assert.ok(JSON.stringify(short).length * 4 < JSON.stringify(full).length, 'the compact answer is under a quarter of the full one');
+});
+
+test('the REST search endpoint also answers compactly unless full detail is requested', async () => {
+  const mock = upstream([{ name: 'good-csv', downloads: 50000, description: 'CSV parser' }]);
+  const handler = createHandler({ ...mock, pause });
+  const post = async (body: Json) => (await handler.fetch(new Request('https://scout.test/v1/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }))).json() as Promise<Json>;
+  const short = await post({ keywords: ['csv'] });
+  assert.equal(short.detail, 'compact');
+  assert.equal(typeof short.verdict, 'string');
+  const full = await post({ keywords: ['csv'], detail: 'full' });
+  assert.equal(full.detail, undefined);
+  assert.ok(object((full.packages as Json[])[0].quality).signals);
+  assert.equal(object(full.constraints).detail, undefined);
+  assert.match(String((await post({ keywords: ['csv'], detail: 'everything' })).error), /detail must be compact or full/);
+});
+
+test('cautions say what to watch for, and only when there is something to watch', async () => {
+  const mock = upstream([
+    { name: 'heavy-editor', description: 'Rich editor', downloads: 5000, scripts: { postinstall: 'node build.js' }, dependencies: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`dep-${i}`, '1'])) },
+    { name: 'editor-adapter', description: 'Editor adapter for a framework', downloads: 900000, dependencies: {} },
+  ]);
+  const result = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['editor', 'markdown'], runtime: 'browser', detail: 'compact' });
+  const byName = new Map((result.packages as Json[]).map(p => [p.name, p]));
+  const heavy = byName.get('heavy-editor')!;
+  assert.equal(heavy.match, 'partial');
+  assert.deepEqual(heavy.unmatched_keywords, ['markdown']);
+  assert.deepEqual(heavy.cautions, [
+    'Metadata mentions "editor" but not "markdown".', 'No browser support is declared. Check the README.',
+    'Runs install scripts: postinstall.', 'Small crowd: 5K downloads a week.', 'Brings 12 direct dependencies.',
+  ]);
+  assert.ok((byName.get('editor-adapter')!.cautions as string[]).some(note => /^Role hint: adapter\./.test(note)));
+  assert.match(String(result.verdict), /^Partial match: /);
+  assert.match(String(result.verdict), /Read its README before you trust it\.$/);
+});
+
+test('the verdict hedges a small crowd and admits when nothing clears the bar', async () => {
+  const mock = upstream([{ name: 'tiny-ofx', downloads: 2000, description: 'OFX statement parser', dependencies: {} }]);
+  const handler = createHandler({ ...mock, pause });
+  const small = await call(handler, 'search_packages', { keywords: ['ofx'], detail: 'compact' });
+  assert.equal(small.verdict, 'Closest fit: tiny-ofx@1.0.0, but it is a small crowd. 2K downloads a week, MIT, zero dependencies, no known direct advisories. Read its README before you trust it.');
+  const none = await call(handler, 'search_packages', { keywords: ['quantum', 'toaster'], detail: 'compact' });
+  assert.equal(none.returned, 0);
+  assert.equal(none.verdict, 'Nothing clears Scout\'s bar for "quantum" and "toaster". Retry with next_search to include small packages, or try another keyword.');
+  assert.deepEqual(none.next_search, { keywords: ['quantum', 'toaster'], runtime: 'any', niche: true });
+  const still = await call(handler, 'search_packages', { keywords: ['quantum', 'toaster'], niche: true, detail: 'compact' });
+  assert.equal(still.verdict, 'Nothing clears Scout\'s bar for "quantum" and "toaster". Try another keyword. Or, tragically, write it yourself.');
+});
+
+test('a job the platform already does is answered with the built-in before any package', async () => {
+  const mock = upstream([{ name: 'pad-left', downloads: 983480, description: 'Left pad a string with zeros', dependencies: { repeat: '1' } }]);
+  const handler = createHandler({ ...mock, pause });
+  const result = await call(handler, 'search_packages', { keywords: ['left pad'], detail: 'compact' });
+  assert.equal(result.verdict, "Don't install anything: String.prototype.padStart() is built in. If that is not enough, Scout's pick is pad-left@1.0.0.");
+  const platform = object(result.platform);
+  assert.equal(platform.builtin, 'String.prototype.padStart()');
+  assert.match(String(platform.docs), /^https:\/\/developer\.mozilla\.org\//);
+  assert.equal((result.packages as Json[])[0].name, 'pad-left');
+  const full = await call(handler, 'search_packages', { keywords: ['left pad'] });
+  assert.deepEqual(full.platform, result.platform);
+  const nodeOnly = await call(handler, 'search_packages', { keywords: ['argument parser'], runtime: 'node', detail: 'compact' });
+  assert.equal(nodeOnly.verdict, "Don't install anything: util.parseArgs() is built in to Node.");
+});
+
+test('platform answers are strict: one listed concept, the right runtime, and nothing the built-in cannot do', () => {
+  const builtin = (keywords: string[], runtime = 'any') => platformAnswer(keywords, runtime)?.builtin ?? null;
+  assert.equal(builtin(['uuid']), 'crypto.randomUUID()');
+  assert.equal(builtin(['uuid', 'generate']), 'crypto.randomUUID()');
+  assert.equal(builtin(['UUID generator', 'javascript']), 'crypto.randomUUID()');
+  assert.equal(builtin(['uuid', 'validate']), null);
+  assert.equal(builtin(['uuid v7']), null);
+  assert.equal(builtin(['pad', 'left']), 'String.prototype.padStart()');
+  assert.equal(builtin(['deep clone']), 'structuredClone()');
+  assert.equal(builtin(['clone', 'repository']), null);
+  assert.equal(builtin(['date picker'], 'browser'), '<input type="date">');
+  assert.equal(builtin(['date picker']), '<input type="date">');
+  assert.equal(builtin(['date picker'], 'node'), null);
+  assert.equal(builtin(['date range picker'], 'browser'), null);
+  assert.equal(builtin(['deep equal'], 'browser'), null);
+  assert.equal(builtin(['deep equal', 'browser']), null);
+  assert.equal(builtin(['deep equal'], 'node'), 'util.isDeepStrictEqual()');
+  assert.equal(builtin(['copy to clipboard'], 'browser'), 'navigator.clipboard.writeText()');
+  assert.equal(builtin(['is odd']), 'the % operator');
+  assert.equal(builtin(['fetch timeout']), 'AbortSignal.timeout()');
+  for (const rabbitHole of [['csv parser'], ['password', 'hash'], ['timezone'], ['pdf', 'generate'], ['markdown parser'], ['date'], ['fetch', 'retry'], ['hash']]) {
+    assert.equal(builtin(rabbitHole), null, rabbitHole.join(' '));
+  }
+});
+
+test('every built-in in the catalog is well formed, unambiguous, and actually works', async () => {
+  const require = createRequire(import.meta.url);
+  const ids = new Set<string>(); const phrases = new Map<string, string>();
+  for (const entry of PLATFORM) {
+    assert.equal(ids.has(entry.id), false, `duplicate id ${entry.id}`); ids.add(entry.id);
+    assert.ok(entry.runtimes.length && entry.runtimes.every(runtime => runtime === 'browser' || runtime === 'node'), entry.id);
+    assert.match(entry.docs, /^https:\/\/(developer\.mozilla\.org|nodejs\.org)\//, entry.id);
+    assert.ok(entry.builtin && entry.example && entry.phrases.length, entry.id);
+    for (const phrase of entry.phrases) {
+      const key = [...new Set(concept(phrase))].sort().join(' ');
+      assert.ok(key, `${entry.id}: empty phrase`);
+      assert.ok(!phrases.has(key) || phrases.get(key) === entry.id, `"${phrase}" is claimed by ${phrases.get(key)} and ${entry.id}`);
+      phrases.set(key, entry.id);
+      assert.equal(platformAnswer([phrase], entry.runtimes[0])?.builtin, entry.builtin, `"${phrase}" should find ${entry.id}`);
+    }
+    // Browser markup cannot run here. Everything that claims to work on Node must prove it.
+    assert.equal(typeof entry.verify === 'string', entry.runtimes.includes('node'), `${entry.id}: verify`);
+    if (entry.verify) assert.equal(await new Function('require', `return (${entry.verify});`)(require), true, `${entry.id}: ${entry.verify}`);
+  }
+});
+
+test('download counts read the way a person would say them', () => {
+  assert.deepEqual([833, 1000, 6813, 45100, 99960, 475886, 999960, 25501733, 394395796, 1181300000].map(formatCount),
+    ['833', '1K', '6.8K', '45.1K', '100K', '476K', '1M', '25.5M', '394M', '1.2B']);
+  const result = { packages: [{ name: 'x', version: '2.0.0', weekly_downloads: 12000, licenses: null, direct_runtime_dependency_count: null, known_direct_advisories: null, relevance_evidence: { match_type: 'complete' } }], platform: null };
+  assert.match(verdictFor(result), /^Scout's pick: x@2\.0\.0\. 12K downloads a week\. /);
+  assert.equal(compact({ ...result, verdict: 'kept', packages: [], warnings: [], meta: {}, attribution: {}, evidence_limits: '' }).verdict, 'kept');
 });
