@@ -1,0 +1,58 @@
+{
+  "checked_at": "2026-11-17T14:59:23Z",
+  "claude_code_version": "2.1.326",
+  "platform": "linux",
+  "node_versions": ["22.23.4", "24.22.1"],
+  "baseline": {
+    "source_commit": "2f2da3c965a80747c0b0d8a91df5c40e4deeba4f",
+    "plugin_version": "1.0.3",
+    "installation_source": "https://github.com/Memrov/package-scout",
+    "strict_plugin_and_marketplace_validation": "passed",
+    "github_marketplace_install": "passed",
+    "native_claude_mcp_health": { "node_24": "Connected", "node_22": "Failed to connect: CONNECTION_CLOSED" },
+    "cause": "The bundled server exited below Node 24.3, a requirement of the TypeScript source entry only."
+  },
+  "fixed": {
+    "source_commit": "3c17730bf0165acca57574e5f3e888b2b3e341e9",
+    "plugin_version": "1.0.4",
+    "installation_source": "local marketplace at the source commit's working tree",
+    "unit_tests": { "node_24": { "passed": 95, "failed": 0, "skipped": 1 }, "node_22_distributables": { "passed": 5, "failed": 0 } },
+    "type_check": "passed",
+    "worker_build_and_artifact_validation": "passed",
+    "native_claude_mcp_health": { "node_24": "Connected", "node_22": "Connected" }
+  },
+  "headless_claude_sessions": [
+    {
+      "plugin_version": "1.0.3", "node": "24.22.1", "loaded_by": "--plugin-dir",
+      "prompt": "/package-scout:scout parse a CSV upload in the browser",
+      "mcp_status": "connected", "tools_called": ["search_packages", "get_package_details"], "permission_denials": 0,
+      "answer": "papaparse@5.7.1 after its README was inspected"
+    },
+    {
+      "plugin_version": "1.0.3", "node": "24.22.1", "loaded_by": "GitHub marketplace install",
+      "prompt": "Plain-language request to replace a hand-written retry-with-backoff helper",
+      "skill_selected_by_model": true, "preapproved": ["Skill(package-scout:scout)"],
+      "mcp_status": "connected", "tools_called": ["search_packages", "get_package_details"], "permission_denials": 0,
+      "answer": "p-retry@9.0.0 after its README was inspected"
+    },
+    {
+      "plugin_version": "1.0.3", "node": "22.23.4", "loaded_by": "--plugin-dir",
+      "prompt": "/package-scout:scout retry failed HTTP calls with backoff in Node",
+      "mcp_status": "failed", "tools_called": [],
+      "answer": "Unverified leads from model knowledge only"
+    },
+    {
+      "plugin_version": "1.0.4", "node": "22.23.4", "loaded_by": "local marketplace install",
+      "prompt": "/package-scout:scout retry failed HTTP calls with backoff in Node",
+      "mcp_status": "connected", "tools_called": ["search_packages", "get_package_details"], "permission_denials": 0,
+      "answer": "p-retry@9.0.0 after its README was inspected"
+    }
+  ],
+  "verification_limits": [
+    "Sessions ran headless with claude -p. Interactive sessions were not exercised.",
+    "A model-initiated Skill call asks for permission. Headless mode cannot prompt, so the plain-language run pre-approved Skill(package-scout:scout); the slash-command runs needed no approval.",
+    "Node 22.23.4 was the only Node 22 release exercised locally; CI runs the distributable tests on the current Node 22 release. Earlier 22.x releases were not exercised.",
+    "In a configuration that also synced about 40 organization plugins into this cloud container, the installed server was never launched and reported failed, with no error logged. A clean configuration connected. The cause was not determined.",
+    "macOS and Windows were not exercised."
+  ]
+}

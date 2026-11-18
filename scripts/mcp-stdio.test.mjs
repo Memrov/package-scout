@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { access, cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -78,4 +78,20 @@ test('the distributable runs from a path with spaces without dependencies or an 
   }
   server.send(request(4, 'tools/list'));
   assert.equal((await server.reply()).result.tools.length, 2);
+});
+
+test('the distributable enforces the Node floor that the npm package declares', { timeout: 10000 }, async () => {
+  const { engines } = JSON.parse(await readFile(new URL('../npm/package.json', import.meta.url), 'utf8'));
+  const floor = engines.node.replace(/^>=/, '');
+  const [major, minor] = floor.split('.').map(Number);
+  const run = version => spawnSync(process.execPath, [
+    '--import', `data:text/javascript,Object.defineProperty(process,'versions',{value:{...process.versions,node:'${version}'}})`,
+    join(root, 'server.mjs'),
+  ], { cwd: tmpdir(), encoding: 'utf8', input: JSON.stringify(request(1, 'ping')) + '\n', timeout: 5000 });
+  const below = run(minor ? `${major}.${minor - 1}.0` : `${major - 1}.99.0`);
+  assert.equal(below.status, 1);
+  assert.match(below.stderr, new RegExp(`requires Node\\.js ${floor.replaceAll('.', '\\.')} or newer`));
+  const at = run(floor);
+  assert.equal(at.status, 0, at.stderr);
+  assert.deepEqual(JSON.parse(at.stdout), { jsonrpc: '2.0', id: 1, result: {} });
 });

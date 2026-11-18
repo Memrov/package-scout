@@ -15,7 +15,7 @@ import { readFile } from 'node:fs/promises';
 const pause = async () => {};
 const createHandler = (options: Parameters<typeof makeHandler>[0] = {}) => makeHandler({ ...options, bootstrap: [] });
 const response = (data: unknown) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-type Package = { name: string; description?: string; downloads?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
+type Package = { name: string; description?: string; downloads?: number; dependents?: number; deprecated?: boolean; vulnerable?: boolean; license?: string | null; missing?: boolean; repo?: string; dependencies?: Json; scripts?: Json; cardScore?: number | null; cardDate?: string; maintainedScore?: number; manifest?: Json; emptyReadme?: boolean };
 const repositoryId = (p: Package) => p.repo ?? `github.com/example/${p.name.replace(/[^a-z0-9-]/g, '')}`;
 function upstream(packages: Package[], listed?: string[] | Record<string, string[]>) {
   const calls: string[] = [];
@@ -23,7 +23,7 @@ function upstream(packages: Package[], listed?: string[] | Record<string, string
     const url = new URL(String(input)); calls.push(url.toString());
     if (url.pathname === '/-/v1/search') {
       const selected = Array.isArray(listed) ? listed : listed?.[url.searchParams.get('text') ?? ''];
-      return response({ objects: packages.filter(p => !selected || selected.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description ?? 'CSV cache concurrency limit package for the browser', keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }) })) });
+      return response({ objects: packages.filter(p => !selected || selected.includes(p.name)).map(p => ({ package: { name: p.name, description: p.description ?? 'CSV cache concurrency limit package for the browser', keywords: p.manifest?.keywords }, ...(p.downloads === undefined ? {} : { downloads: { weekly: p.downloads } }), ...(p.dependents === undefined ? {} : { dependents: String(p.dependents) }) })) });
     }
     if (url.host === 'api.npmjs.org') {
       const name = decodeURIComponent(url.pathname.split('/').at(-1)!);
@@ -621,7 +621,7 @@ test('the default answer is compact: a verdict, the picks, and a fraction of the
   assert.match(String(short.verdict), /^Scout's pick: papa@1\.0\.0\. 25\.5M downloads a week, MIT, zero dependencies, no known direct advisories\. /);
   assert.equal(short.platform, null);
   const first = (short.packages as Json[])[0];
-  assert.deepEqual(Object.keys(first), ['name', 'version', 'install', 'description', 'weekly_downloads', 'licenses', 'dependencies', 'runtime', 'match', 'published_at', 'openssf_scorecard', 'npm_url', 'repository']);
+  assert.deepEqual(Object.keys(first), ['name', 'version', 'install', 'description', 'weekly_downloads', 'direct_dependents', 'licenses', 'dependencies', 'runtime', 'match', 'published_at', 'openssf_scorecard', 'npm_url', 'repository']);
   assert.equal(first.install, 'npm install papa@1.0.0');
   assert.equal(first.openssf_scorecard, 7);
   assert.equal(first.repository, 'https://github.com/example/papa');
@@ -782,4 +782,112 @@ test('the README quotes the recorded challenge results and the real number of bu
   for (const builtin of ['String.prototype.padStart()', 'structuredClone()', 'crypto.randomUUID()', 'fetch()', '<input type="date">', '<dialog>', 'Intl.NumberFormat', 'util.parseArgs()', 'node --env-file', 'node:test']) {
     assert.ok(readme.includes(`\`${builtin}\``) && PLATFORM.some(entry => entry.builtin === builtin), builtin);
   }
+});
+
+test('direct dependents outrank raw downloads within a download tier, and uncounted packages follow counted ones', async () => {
+  // All three sit in the 10M-100M weekly tier. The most downloaded is mostly a hidden dependency.
+  const mock = upstream([
+    { name: 'hidden-dependency', downloads: 91000000, dependents: 1565, description: 'CSV parser' },
+    { name: 'chosen-library', downloads: 33000000, dependents: 13580, description: 'CSV parser' },
+    { name: 'uncounted-library', downloads: 50000000, description: 'CSV parser' },
+  ]);
+  const handler = createHandler({ ...mock, pause });
+  const full = await call(handler, 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['chosen-library', 'hidden-dependency', 'uncounted-library']);
+  assert.deepEqual((full.packages as Json[]).map(p => p.direct_dependents), [13580, 1565, null]);
+  const priorities = object(full.scoring).priorities as string[];
+  assert.ok(priorities.indexOf('direct_dependents') < priorities.indexOf('runtime_preference'));
+  assert.ok(priorities.indexOf('runtime_preference') < priorities.indexOf('weekly_downloads'));
+  assert.match(String(object(object(full.scoring).dependents).source), /npm registry search/);
+  const short = await call(handler, 'search_packages', { keywords: ['csv'], detail: 'compact' });
+  assert.equal((short.packages as Json[])[0].direct_dependents, 13580);
+});
+
+test('malformed dependents counts from npm stay unknown instead of ranking', async () => {
+  const mock = upstream([{ name: 'odd-count', downloads: 50000, description: 'CSV parser' }]);
+  const fetchImpl: typeof fetch = async (url, init) => {
+    const res = await mock.fetchImpl(url, init);
+    if (new URL(String(url)).pathname !== '/-/v1/search') return res;
+    const data = await res.json() as Json;
+    for (const item of data.objects as Json[]) item.dependents = '12e9';
+    return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
+  };
+  const full = await call(createHandler({ fetchImpl, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.equal((full.packages as Json[])[0].direct_dependents, null);
+});
+
+test('a download tier still outranks dependents, so a small package cannot jump a popular one', async () => {
+  const mock = upstream([
+    { name: 'popular-csv', downloads: 2000000, dependents: 10, description: 'CSV parser' },
+    { name: 'tiny-csv', downloads: 20000, dependents: 5000, description: 'CSV parser' },
+  ]);
+  const full = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['popular-csv', 'tiny-csv']);
+});
+
+test('a runtime declaration breaks ties but cannot lift a less adopted package over a popular one', async () => {
+  const mock = upstream([
+    { name: 'declared-small', downloads: 20000, dependents: 0, description: 'HTML sanitizer for the browser', manifest: { browser: './dist/browser.js' } },
+    { name: 'undeclared-popular', downloads: 5000000, dependents: 2800, description: 'HTML sanitizer' },
+    { name: 'declared-twin', downloads: 4000000, dependents: 2800, description: 'HTML sanitizer', manifest: { browser: './browser.js' } },
+  ]);
+  const full = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['html', 'sanitizer'], runtime: 'browser' });
+  // Same tier and dependents: the declared twin wins the tie. The small declared package comes last.
+  assert.deepEqual((full.packages as Json[]).map(p => p.name), ['declared-twin', 'undeclared-popular', 'declared-small']);
+});
+
+test('candidate manifests are fetched together, at most five at a time, without changing the answer', async () => {
+  const discovered = Array.from({ length: 11 }, (_, i) => ({ name: `found-csv-${i}`, downloads: 10000 + i, description: 'CSV parser' }));
+  const sequential = upstream(discovered);
+  let inFlight = 0, peak = 0;
+  const concurrent = upstream(discovered);
+  const fetchImpl: typeof fetch = async (url, init) => {
+    if (!String(url).endsWith('/latest')) return concurrent.fetchImpl(url, init);
+    inFlight++; peak = Math.max(peak, inFlight);
+    await new Promise(done => setTimeout(done, 15));
+    try { return await concurrent.fetchImpl(url, init); } finally { inFlight--; }
+  };
+  const together = await call(createHandler({ fetchImpl, pause }), 'search_packages', { keywords: ['csv'] });
+  const reference = await call(createHandler({ ...sequential, pause }), 'search_packages', { keywords: ['csv'] });
+  assert.ok(peak > 1 && peak <= 5, `peak concurrency ${peak}`);
+  assert.deepEqual((together.packages as Json[]).map(p => p.name), (reference.packages as Json[]).map(p => p.name));
+  assert.equal(concurrent.calls.filter(url => url.endsWith('/latest')).length, 10);
+});
+
+
+test('e18e: a complete match that a built-in replaces leads with that built-in, labelled as e18e', async () => {
+  const mock = upstream([{ name: 'object-assign', downloads: 40000000, dependents: 9000, description: 'ES2015 Object.assign() ponyfill' }]);
+  const short = await call(createHandler({ ...mock, pause }), 'search_packages', { keywords: ['object', 'assign'], detail: 'compact' });
+  const platform = object(short.platform);
+  assert.equal(platform.builtin, 'Object.assign');
+  assert.equal(platform.source, 'e18e module-replacements');
+  assert.equal(platform.replaces, 'object-assign');
+  assert.match(String(short.verdict), /^Built-in first: e18e lists Object\.assign as a replacement for object-assign\. If it does not cover what you need, Scout's pick is object-assign@1\.0\.0\./);
+  assert.ok(((short.packages as Json[])[0].cautions as string[]).some(c => /^e18e: no package needed; use Object\.assign\./.test(c)));
+});
+
+test('e18e: a Node-only replacement is not offered for the browser, and a partial match gets no built-in', async () => {
+  const mock = upstream([{ name: 'chalk', downloads: 300000000, dependents: 100000, description: 'Terminal string styling done right' }]);
+  const handler = createHandler({ ...mock, pause });
+  const node = await call(handler, 'search_packages', { keywords: ['chalk'], runtime: 'node', detail: 'compact' });
+  assert.equal(object(node.platform).builtin, 'util.styleText');
+  assert.match(String(object(node.platform).needs), /^Node\.js 20\.12\.0 or newer$/);
+  assert.match(String(node.verdict), /in Node\./);
+  const browser = await call(handler, 'search_packages', { keywords: ['chalk'], runtime: 'browser', detail: 'compact' });
+  assert.equal(browser.platform, null);
+  assert.ok(((browser.packages as Json[])[0].cautions as string[]).some(c => /^e18e suggests instead: util\.styleText, picocolors, ansis\. https:\/\/e18e\.dev\/docs\/replacements\/chalk$/.test(c)));
+  const partial = await call(handler, 'search_packages', { keywords: ['chalk', 'spinner'], runtime: 'node', detail: 'compact' });
+  assert.equal(partial.platform, null);
+});
+
+test('e18e: a curated built-in answer keeps precedence, and details report the replacements', async () => {
+  const mock = upstream([{ name: 'left-pad', downloads: 2000000, dependents: 500, description: 'String left pad' }]);
+  const handler = createHandler({ ...mock, pause });
+  const short = await call(handler, 'search_packages', { keywords: ['left pad'], detail: 'compact' });
+  assert.equal(object(short.platform).source, undefined);
+  assert.equal(object(short.platform).builtin, 'String.prototype.padStart()');
+  const details = await call(handler, 'get_package_details', { name: 'left-pad', version: '1.0.0' });
+  const replacements = object(object(details.package).replacements);
+  assert.deepEqual(replacements.kinds, ['native']);
+  assert.equal((replacements.suggestions as Json[])[0].id, 'String.prototype.padStart');
 });

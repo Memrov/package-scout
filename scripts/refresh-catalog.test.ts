@@ -100,7 +100,7 @@ for (const problem of ['missing', 'duplicate', 'mismatch', 'repeated-token'] as 
   });
 }
 
-test('429 stops immediately, exposes Retry-After, and never retries automatically', async () => {
+test('a 429 asking for a long wait stops immediately, exposes Retry-After, and is not retried', async () => {
   let calls = 0;
   const client = new PackageSources({ maxRequests: 40, pause, fetchImpl: async () => {
     calls++;
@@ -108,6 +108,44 @@ test('429 stops immediately, exposes Retry-After, and never retries automaticall
   } });
   await assert.rejects(client.latest('alpha'), /429.*Retry-After: 60/);
   assert.equal(calls, 1);
+});
+
+test('a 429 asking for a short wait gets exactly one retry, counted against the budget', async () => {
+  let calls = 0;
+  const waits: number[] = [];
+  const client = new PackageSources({ maxRequests: 40, pause: async ms => { waits.push(ms); }, fetchImpl: async url => {
+    calls++;
+    if (calls === 1) return new Response('', { status: 429, headers: { 'Retry-After': '1' } });
+    return json({ name: 'alpha', version: '1.0.0' });
+  } });
+  assert.equal((await client.latest('alpha')).version, '1.0.0');
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [1000]);
+  assert.equal(client.counts.total, 2);
+});
+
+test('a second short 429, or one without Retry-After, fails without further attempts', async () => {
+  let calls = 0;
+  const twice = new PackageSources({ maxRequests: 40, pause, fetchImpl: async () => { calls++; return new Response('', { status: 429, headers: { 'Retry-After': '0' } }); } });
+  await assert.rejects(twice.latest('alpha'), /429.*failed again after one retry/);
+  assert.equal(calls, 2);
+  calls = 0;
+  const unspecified = new PackageSources({ maxRequests: 40, pause, fetchImpl: async () => { calls++; return new Response('', { status: 429 }); } });
+  await assert.rejects(unspecified.latest('alpha'), /Retry-After: unspecified; not retried/);
+  assert.equal(calls, 1);
+});
+
+test('interactive requests are not spaced out; bulk jobs opt in to spacing', async () => {
+  const fixtureFetch = async (url: RequestInfo | URL) => json({ name: decodeURIComponent(new URL(String(url)).pathname.split('/')[1]), version: '1.0.0' });
+  const interactiveWaits: number[] = [];
+  const interactive = new PackageSources({ maxRequests: 3, pause: async ms => { interactiveWaits.push(ms); }, fetchImpl: fixtureFetch });
+  await interactive.latest('alpha'); await interactive.latest('beta');
+  assert.equal(interactiveWaits.length, 0);
+  const bulkWaits: number[] = [];
+  const bulk = new PackageSources({ maxRequests: 3, spacingMs: 250, pause: async ms => { bulkWaits.push(ms); }, fetchImpl: fixtureFetch });
+  await bulk.latest('alpha'); await bulk.latest('beta');
+  assert.deepEqual(bulkWaits, [250]);
+  assert.throws(() => new PackageSources({ maxRequests: 3, spacingMs: -1 }), /spacing/);
 });
 
 test('uses Cloudflare-compatible manual redirects and rejects upstream redirects', async () => {

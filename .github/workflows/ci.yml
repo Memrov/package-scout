@@ -31,3 +31,19 @@ jobs:
           npm run build
           npm run validate
 
+  # The Claude Code plugin and npm server run on whatever node is on the user's PATH.
+  # Their bundle needs no type stripping or dependencies, so check the Node 22 floor directly.
+  distributables-node-22:
+    name: Plugin and npm server on Node 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Serve MCP from the committed bundles without development dependencies
+        run: npm exec --offline -- node --test scripts/mcp-stdio.test.mjs scripts/npm-package.test.mjs
+

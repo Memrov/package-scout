@@ -6,7 +6,7 @@ custom JavaScript or TypeScript. It makes no model calls and requires no API key
 
 ## Connect an agent
 
-Use **Node.js 24.3.0 or newer**. Configure an MCP client with:
+Use **Node.js 22 or newer**. Configure an MCP client with:
 
 ```json
 {
