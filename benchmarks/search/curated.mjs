@@ -8,7 +8,11 @@ const NAME = /^@?[a-z0-9][a-z0-9._/-]*$/;
 // Every right answer a list item can name: its link text and its GitHub repository name, as written and in common npm spellings.
 function answers(block) {
   const out = new Set();
-  for (const [, label, url] of block.matchAll(/^\s*[-*] \[([^\]]+)\]\((https?:\/\/[^)]+)\)/gm)) {
+  // Line by line with an anchored, linear pattern: the lists are downloaded, so no backtracking across lines.
+  for (const line of block.split('\n')) {
+    const item = line.match(/^[ \t]*[-*] \[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/);
+    if (!item) continue;
+    const [, label, url] = item;
     const text = label.trim().toLowerCase();
     for (const name of [text, text.replaceAll(' ', '-'), text.endsWith('.js') ? text.slice(0, -3) : text, text.replaceAll('.js', 'js')]) {
       if (NAME.test(name)) out.add(name);
@@ -24,7 +28,9 @@ export function deriveQueries(markdown, source) {
   if (start < 0) throw new Error(`${source.name}: start heading not found`);
   const stop = source.stop ? markdown.indexOf(source.stop, start) : -1;
   const body = markdown.slice(start, stop < 0 ? undefined : stop);
-  const heading = new RegExp(`^${source.level} (.+)$`, 'gm');
+  // Fixed patterns rather than one built from configuration text.
+  const heading = { '##': /^## (.+)$/gm, '###': /^### (.+)$/gm }[source.level];
+  if (!heading) throw new Error(`${source.name}: level must be ## or ###`);
   const marks = [...body.matchAll(heading)];
   const exclude = new Set(source.exclude);
   const queries = [];

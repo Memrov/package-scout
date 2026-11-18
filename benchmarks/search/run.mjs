@@ -42,15 +42,12 @@ async function upstream(url, init = {}) {
   return new Response(hit.body, { status: hit.status, headers: hit.headers });
 }
 
+// The pinned lists are small; they are fetched each run rather than written to disk.
 async function fetchText(url) {
-  const file = new URL(`list-${Buffer.from(url).toString('base64url').slice(-40)}.md`, out);
-  const saved = await readFile(file, 'utf8').catch(() => null);
-  if (saved) return saved;
+  if (!/^https:\/\/raw\.githubusercontent\.com\/[\w.-]+\/[\w.-]+\/[0-9a-f]{40}\/[\w./-]+$/.test(url)) throw new Error(`Unexpected list URL ${url}`);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  const text = await res.text();
-  await writeFile(file, text);
-  return text;
+  return res.text();
 }
 
 const tasks = JSON.parse(await readFile(new URL('tasks.json', import.meta.url), 'utf8')).tasks.map(task => ({ ...task, source: 'tasks' }));
