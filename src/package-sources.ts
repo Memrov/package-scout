@@ -5,14 +5,36 @@ export const NPM_API = 'https://registry.npmjs.org';
 const RESPONSE_BYTE_LIMIT = 4 * 1024 * 1024;
 const BATCH_SIZE = 25;
 const MAX_BATCH_PAGES = 5;
+// A 429 that asks for a short wait gets one more attempt; a longer wait fails at once.
+const MAX_RETRY_AFTER_SECONDS = 2;
 
 export class UpstreamHttpError extends Error {
   readonly status: number;
-  constructor(status: number, retryAfter: string | null) {
+  constructor(status: number, retryAfter: string | null, retried = false) {
     const retry = status === 429 ? `; Retry-After: ${retryAfter ?? 'unspecified'}` : '';
-    super(`Upstream HTTP ${status}${retry}; no automatic retry or publication`);
+    super(`Upstream HTTP ${status}${retry}; ${retried ? 'failed again after one retry' : 'not retried'}; no publication`);
     this.status = status;
   }
+}
+
+function shortRetryAfter(value: string | null): number | null {
+  if (value === null || !/^\d+$/.test(value.trim())) return null;
+  const seconds = Number(value);
+  return seconds <= MAX_RETRY_AFTER_SECONDS ? seconds : null;
+}
+
+// Runs jobs with at most `limit` in flight and keeps each outcome in input order.
+export async function settleLimited<T>(jobs: (() => Promise<T>)[], limit: number): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(jobs.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, async () => {
+    while (next < jobs.length) {
+      const index = next++;
+      try { results[index] = { status: 'fulfilled', value: await jobs[index]() }; }
+      catch (reason) { results[index] = { status: 'rejected', reason }; }
+    }
+  }));
+  return results;
 }
 
 export function object(value: unknown): Json {
@@ -51,27 +73,50 @@ export class PackageSources {
   private readonly fetchImpl: typeof fetch;
   private readonly pause: (ms: number) => Promise<void>;
   private readonly maxRequests: number;
+  private readonly spacingMs: number;
 
-  constructor(options: { maxRequests: number; fetchImpl?: typeof fetch; pause?: (ms: number) => Promise<void> }) {
+  // spacingMs paces bulk jobs such as the catalog builders. Interactive searches leave it at 0:
+  // they make about a dozen requests, and waiting between them was most of their latency.
+  constructor(options: { maxRequests: number; fetchImpl?: typeof fetch; pause?: (ms: number) => Promise<void>; spacingMs?: number }) {
     if (!Number.isInteger(options.maxRequests) || options.maxRequests < 1 || options.maxRequests > 200) {
       throw new Error('Request budget must be between 1 and 200');
     }
+    const spacing = options.spacingMs ?? 0;
+    if (!Number.isInteger(spacing) || spacing < 0 || spacing > 5000) throw new Error('Request spacing must be between 0 and 5000 ms');
     this.maxRequests = options.maxRequests;
+    this.spacingMs = spacing;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.pause = options.pause ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   }
 
-  private async request(url: string, body?: Json): Promise<Json> {
+  private async send(url: string, body?: Json): Promise<Response> {
+    // Each attempt, including a retry, counts against the request budget.
     if (this.counts.total >= this.maxRequests) throw new Error('Upstream request budget exhausted; no snapshot published');
     const sequence = this.counts.total++;
     const hostname = new URL(url).hostname;
     this.counts[hostname === 'registry.npmjs.org' || hostname === 'api.npmjs.org' ? 'npm' : 'deps_dev']++;
-    if (sequence) await this.pause(250);
-    const response = await this.fetchImpl(url, {
+    if (sequence && this.spacingMs) await this.pause(this.spacingMs);
+    return this.fetchImpl(url, {
       method: body ? 'POST' : 'GET', redirect: 'manual',
       headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(30000),
     });
+  }
+
+  private async request(url: string, body?: Json): Promise<Json> {
+    let response = await this.send(url, body);
+    if (response.status === 429) {
+      const wait = shortRetryAfter(response.headers.get('retry-after'));
+      if (wait !== null && this.counts.total < this.maxRequests) {
+        await response.body?.cancel();
+        await this.pause(Math.max(wait * 1000, 250));
+        response = await this.send(url, body);
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new UpstreamHttpError(response.status, response.headers.get('retry-after'), true);
+        }
+      }
+    }
     if (!response.ok) {
       await response.body?.cancel();
       throw new UpstreamHttpError(response.status, response.headers.get('retry-after'));

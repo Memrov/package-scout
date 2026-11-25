@@ -1,4 +1,5 @@
 import { object, type Json } from './package-sources.ts';
+import { replacementCaution } from './replacements.ts';
 
 // Scout's short answer. The facts come first and stay sober; the last line is allowed to have fun.
 const CLOSERS = ['Someone already wrote it.', 'Put the keyboard down.', "That's the whole job.", 'Scout has never written one of these.', 'Go outside.'];
@@ -34,7 +35,12 @@ export function verdictFor(result: Json): string {
   const top = packages[0];
   const pick = top ? `${top.name}@${top.version}` : null;
   if (platform) {
-    const where = (platform.runtimes as string[]).length > 1 ? '' : (platform.runtimes as string[])[0] === 'node' ? ' to Node' : ' to the browser';
+    const runtimes = platform.runtimes as string[];
+    if (platform.source) {
+      const where = runtimes.length > 1 ? '' : runtimes[0] === 'node' ? ' in Node' : ' in the browser';
+      return `Built-in first: e18e lists ${platform.builtin} as a replacement for ${platform.replaces}${where}.${pick ? ` If it does not cover what you need, Scout's pick is ${pick}.` : ''}`;
+    }
+    const where = runtimes.length > 1 ? '' : runtimes[0] === 'node' ? ' to Node' : ' to the browser';
     return `Don't install anything: ${platform.builtin} is built in${where}.${pick ? ` If that is not enough, Scout's pick is ${pick}.` : ''}`;
   }
   if (!top) {
@@ -66,6 +72,8 @@ function cautions(candidate: Json): string[] {
   if (Array.isArray(candidate.declared_install_hooks) && candidate.declared_install_hooks.length) notes.push(`Runs install scripts: ${candidate.declared_install_hooks.join(', ')}.`);
   if (typeof candidate.weekly_downloads === 'number' && candidate.weekly_downloads < SMALL_CROWD) notes.push(`Small crowd: ${formatCount(candidate.weekly_downloads)} downloads a week.`);
   if (typeof candidate.direct_runtime_dependency_count === 'number' && candidate.direct_runtime_dependency_count >= 10) notes.push(`Brings ${candidate.direct_runtime_dependency_count} direct dependencies.`);
+  const replacement = replacementCaution(candidate.replacements as Json | null | undefined);
+  if (replacement) notes.push(replacement);
   return notes;
 }
 
@@ -80,7 +88,7 @@ export function compact(result: Json): Json {
     const notes = cautions(candidate);
     return {
       name: candidate.name, version: candidate.version, install: candidate.install_command, description: clip(candidate.description),
-      weekly_downloads: candidate.weekly_downloads, licenses: candidate.licenses, dependencies: candidate.direct_runtime_dependency_count,
+      weekly_downloads: candidate.weekly_downloads, direct_dependents: candidate.direct_dependents ?? null, licenses: candidate.licenses, dependencies: candidate.direct_runtime_dependency_count,
       runtime: object(candidate.runtime_evidence).status, match: relevance.match_type,
       ...(relevance.match_type === 'complete' ? {} : { unmatched_keywords: relevance.unmatched_keywords }),
       published_at: candidate.published_at, openssf_scorecard: scorecard ? object(scorecard).score : null,

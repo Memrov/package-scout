@@ -45,7 +45,7 @@ Scout is lazy, with standards:
 
 ### Claude Code: install the plugin
 
-With Node 24.3+ on your `PATH`, run these two commands inside Claude Code:
+With Node 22 or newer on your `PATH`, run these two commands inside Claude Code:
 
 ```text
 /plugin marketplace add Memrov/package-scout
@@ -65,7 +65,7 @@ troubleshooting and development.
 
 ### Other MCP clients: npm
 
-With Node 24.3+, configure a stdio MCP server with:
+With Node 22 or newer, configure a stdio MCP server with:
 
 ```json
 {
@@ -205,7 +205,7 @@ Advisories in a package's dependencies are not checked, and a metadata match is 
 | a test runner | `node:test` | Built for Node code. |
 | is-odd | `n % 2 !== 0` | None. Scout isn't angry. Scout is disappointed. |
 
-There are 27 built-ins so far, in [catalog/platform.json](catalog/platform.json), and the test suite runs every Node one to make sure it works. Each entry states its limits, because that is the point where a package becomes the right answer after all. Adding one is a single JSON entry.
+There are 27 built-ins so far, in [catalog/platform.json](catalog/platform.json), and the test suite runs every Node one to make sure it works. Each entry states its limits, because that is the point where a package becomes the right answer after all. Adding one is a single JSON entry. Beyond those, Scout cites e18e's [module-replacements](https://github.com/e18e/module-replacements) data for 943 packages that a built-in, a few lines, or a lighter package can replace, and leads with that built-in when its own list has none.
 
 ## The rabbit-hole list
 

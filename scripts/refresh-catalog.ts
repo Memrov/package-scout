@@ -73,7 +73,8 @@ export async function collectCatalog(options: {
   const seeds = validateSeeds(options.seeds);
   const previous = validateCatalog(options.previous ?? { schema_version: 1, packages: [] });
   if (previous.packages.length > seeds.limits.max_packages) throw new Error('Prior catalog exceeds configured package cap');
-  const client = new PackageSources({ maxRequests: seeds.limits.max_requests, fetchImpl: options.fetchImpl, pause: options.pause });
+  // A bulk job, so it keeps the polite spacing between requests that interactive searches no longer need.
+  const client = new PackageSources({ maxRequests: seeds.limits.max_requests, fetchImpl: options.fetchImpl, pause: options.pause, spacingMs: 250 });
   const records = new Map(previous.packages.map(record => [record.name, record]));
   const candidates = new Set(seeds.package_names);
   if (!options.skipSearch) {

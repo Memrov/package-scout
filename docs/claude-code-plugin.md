@@ -7,7 +7,7 @@ calls for an npm package or a platform built-in.
 ## Install
 
 Install [Claude Code](https://code.claude.com/docs/en/quickstart) and put
-**Node.js 24.3.0 or newer** on your `PATH`. In a Claude Code session, run:
+**Node.js 22 or newer** on your `PATH`. In a Claude Code session, run:
 
 ```text
 /plugin marketplace add Memrov/package-scout
@@ -52,7 +52,8 @@ The Claude Code manifest is [`claude-code/.claude-plugin/plugin.json`](../claude
 The repository's marketplace points at the isolated `claude-code/` directory.
 Its MCP configuration lives inside the plugin manifest so simply opening this
 repository does not register an extra project-level MCP server. The shared
-guidance is copied into the skill's references by the plugin build.
+guidance is inlined into the skill by the plugin build, so Claude does not spend a
+step opening a separate file.
 
 ## Update or remove
 
@@ -82,7 +83,9 @@ npm run build && npm run validate
 
 `--plugin-dir` loads the distributable for that session without a marketplace
 install. Keep the manifest's version current when shipping a plugin update.
-Commit the generated `claude-code/server.mjs` and skill reference after source
+Edit the skill in `scripts/scout-skill.template.md` and the shared guidance in
+`plugin/skills/package-discovery/SKILL.md`; the build writes `skills/scout/SKILL.md`.
+Commit the generated `claude-code/server.mjs` and `skills/scout/SKILL.md` after source
 changes so a GitHub install needs no build step. `npm test` first checks that
 both generated files match their source; `npm run plugin:check` runs that check
 alone. Build tools are development dependencies of this repository only.
@@ -94,9 +97,12 @@ negotiation, and a cached path containing spaces with no build tools or
 `node scripts/mcp-stdio.mjs` (or `npm run --silent mcp`); stdout is protocol only.
 
 If `/mcp` reports a startup error, check `node --version` in the shell that
-launched Claude Code. If live lookups fail behind an HTTP proxy, use Node's
-supported proxy configuration, such as `NODE_USE_ENV_PROXY=1` on current Node
-24, while preserving the configured proxy and CA environment variables.
+launched Claude Code. The bundled server needs Node 22 or newer; on an older
+Node it exits and names the version and path it found. Running the TypeScript
+source directly still needs Node 24.3+. If live lookups fail behind an HTTP
+proxy, use Node's supported proxy configuration, such as `NODE_USE_ENV_PROXY=1`
+(experimental on Node 22), while preserving the configured proxy and CA
+environment variables.
 
 The plugin follows the official [creation guide](https://code.claude.com/docs/en/plugins/create),
 [component reference](https://code.claude.com/docs/en/plugins/components), and
@@ -104,6 +110,12 @@ The plugin follows the official [creation guide](https://code.claude.com/docs/en
 
 The [2026-11-17 verification record](claude-code-plugin-verification-2026-11-17.json)
 preserves the tested source commit, installed versions and live SDK results.
-Claude Code's native connection check passed. Conversational skill invocation
-was not tested because no Claude model account was signed in in the test
-environment; macOS and Windows were not exercised.
+Claude Code's native connection check passed. No Claude model account was
+signed in there, so conversational use was not tested.
+
+The [session verification record](claude-code-plugin-session-verification-2026-11-17.json)
+covers signed-in, headless Claude Code sessions on Node 22 and 24. In those
+sessions, `/package-scout:scout` and a plain-language request that loaded the
+skill on its own both called the bundled tools and returned sourced answers.
+It also records the Node 22 startup failure that plugin 1.0.4 fixes. Interactive
+sessions, macOS, Windows and earlier Node 22 releases were not exercised.

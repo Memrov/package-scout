@@ -1,0 +1,226 @@
+{
+ "checked_at": "2026-11-17T19:00:00Z",
+ "question": "Where should declared runtime support sit in the ranking, and should direct dependents come from a deps.dev snapshot or from npm search results?",
+ "protocol": {
+  "fixed_before_results": [
+   "query sets and exclusion rules",
+   "dev/test split by SHA-1 of the category id",
+   "selection rule: best right-at-#1 rate on dev averaged over runtime hint on and off; ties go to the simpler variant",
+   "test split scored once after the choice"
+  ],
+  "sources": {
+   "awesome-nodejs": "https://github.com/sindresorhus/awesome-nodejs (categories listing applications or non-tasks excluded; runtime node)",
+   "awesome-javascript": "https://github.com/sorrycc/awesome-javascript (same rule; runtime browser)",
+   "original": "the 20 everyday and 8 held-out tasks from docs/ranking-check-2026-11-17.json, all assigned to dev because they had been seen"
+  },
+  "query": "category name, lowercased, split on spaces and slashes, filler words removed",
+  "right_answer": "any package the list recommends in that category, by link text or GitHub repository name",
+  "upstream": "every variant read one recorded copy of npm and deps.dev responses, so all saw identical data"
+ },
+ "variants": {
+  "runtime position": {
+   "inrel": "inside relevance, before the adoption tier (the previous ranking)",
+   "aftertier": "after the adoption tier, before direct dependents",
+   "tiebreak": "after direct dependents, before weekly downloads"
+  },
+  "dependents source": {
+   "snapshot": "bundled deps.dev sums over recent release lines",
+   "npm": "the dependents count npm returns with each search result",
+   "none": "no dependents signal"
+  },
+  "npm-order": "npm search order, for reference"
+ },
+ "dev": [
+  {
+   "variant": "aftertier/none",
+   "right_at_1_without_hint": 16,
+   "right_at_1_with_hint": 18,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 30,
+   "queries": 75
+  },
+  {
+   "variant": "aftertier/npm",
+   "right_at_1_without_hint": 23,
+   "right_at_1_with_hint": 22,
+   "right_in_top_3_without_hint": 30,
+   "right_in_top_3_with_hint": 30,
+   "queries": 75
+  },
+  {
+   "variant": "aftertier/snapshot",
+   "right_at_1_without_hint": 22,
+   "right_at_1_with_hint": 22,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 29,
+   "queries": 75
+  },
+  {
+   "variant": "inrel/none",
+   "right_at_1_without_hint": 16,
+   "right_at_1_with_hint": 16,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 24,
+   "queries": 75
+  },
+  {
+   "variant": "inrel/npm",
+   "right_at_1_without_hint": 23,
+   "right_at_1_with_hint": 19,
+   "right_in_top_3_without_hint": 30,
+   "right_in_top_3_with_hint": 25,
+   "queries": 75
+  },
+  {
+   "variant": "inrel/snapshot",
+   "right_at_1_without_hint": 22,
+   "right_at_1_with_hint": 19,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 26,
+   "queries": 75
+  },
+  {
+   "variant": "npm-order",
+   "right_at_1_without_hint": 16,
+   "right_at_1_with_hint": 16,
+   "right_in_top_3_without_hint": 22,
+   "right_in_top_3_with_hint": 22,
+   "queries": 75
+  },
+  {
+   "variant": "tiebreak/none",
+   "right_at_1_without_hint": 16,
+   "right_at_1_with_hint": 18,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 30,
+   "queries": 75
+  },
+  {
+   "variant": "tiebreak/npm",
+   "right_at_1_without_hint": 23,
+   "right_at_1_with_hint": 23,
+   "right_in_top_3_without_hint": 30,
+   "right_in_top_3_with_hint": 30,
+   "queries": 75
+  },
+  {
+   "variant": "tiebreak/snapshot",
+   "right_at_1_without_hint": 22,
+   "right_at_1_with_hint": 23,
+   "right_in_top_3_without_hint": 29,
+   "right_in_top_3_with_hint": 29,
+   "queries": 75
+  }
+ ],
+ "test": [
+  {
+   "variant": "aftertier/none",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 9,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  },
+  {
+   "variant": "aftertier/npm",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 10,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  },
+  {
+   "variant": "aftertier/snapshot",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 8,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  },
+  {
+   "variant": "inrel/none",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 9,
+   "right_in_top_3_with_hint": 8,
+   "queries": 47
+  },
+  {
+   "variant": "inrel/npm",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 10,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  },
+  {
+   "variant": "inrel/snapshot",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 8,
+   "right_in_top_3_with_hint": 8,
+   "queries": 47
+  },
+  {
+   "variant": "npm-order",
+   "right_at_1_without_hint": 4,
+   "right_at_1_with_hint": 4,
+   "right_in_top_3_without_hint": 8,
+   "right_in_top_3_with_hint": 8,
+   "queries": 47
+  },
+  {
+   "variant": "tiebreak/none",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 5,
+   "right_in_top_3_without_hint": 9,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  },
+  {
+   "variant": "tiebreak/npm",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 6,
+   "right_in_top_3_without_hint": 10,
+   "right_in_top_3_with_hint": 10,
+   "queries": 47
+  },
+  {
+   "variant": "tiebreak/snapshot",
+   "right_at_1_without_hint": 6,
+   "right_at_1_with_hint": 6,
+   "right_in_top_3_without_hint": 8,
+   "right_in_top_3_with_hint": 9,
+   "queries": 47
+  }
+ ],
+ "decision": "tiebreak/npm: best on dev (30.7% right at #1 averaged over hint settings, against 27.3% for the previous ranking) and best or tied on test (12.8%, against 11.7%). The snapshot tied or trailed npm's live count, so the snapshot, its builder and its weekly workflow were removed.",
+ "retrieval_ceiling": {
+  "dev/awesome-javascript": {
+   "queries": 29,
+   "any_recommended_package_in_npm_top_100": 15
+  },
+  "dev/awesome-nodejs": {
+   "queries": 18,
+   "any_recommended_package_in_npm_top_100": 9
+  },
+  "dev/original": {
+   "queries": 28,
+   "any_recommended_package_in_npm_top_100": 26
+  },
+  "test/awesome-javascript": {
+   "queries": 26,
+   "any_recommended_package_in_npm_top_100": 12
+  },
+  "test/awesome-nodejs": {
+   "queries": 21,
+   "any_recommended_package_in_npm_top_100": 10
+  }
+ },
+ "limits": [
+  "Curated lists are incomplete and partly dated: zod, tinybench, fflate and sharp counted as misses where the lists name older packages.",
+  "Category names are vaguer than real task requests, and npm search returns no recommended package for about half of them, so absolute rates are low and the test split separates variants by only one or two queries.",
+  "One snapshot of live data; results can change as npm and deps.dev change.",
+  "Tool output only; final recommendations by Claude were not measured."
+ ]
+}

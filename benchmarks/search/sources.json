@@ -1,0 +1,27 @@
+{
+  "note": "Curated lists used as independent ground truth. Each run fetches the pinned file and derives queries with curated.mjs; the fingerprint fails the run if the derivation changes.",
+  "sources": [
+    {
+      "name": "awesome-nodejs",
+      "url": "https://raw.githubusercontent.com/sindresorhus/awesome-nodejs/b8e1c0c3879544e32dca7d381d8275ceff267e46/readme.md",
+      "license": "CC0-1.0",
+      "runtime": "node",
+      "level": "###",
+      "start": "### Mad science",
+      "stop": "## Package Manager",
+      "exclude": ["mad science", "command-line apps", "node.js management", "weird", "miscellaneous", "forum", "blogging", "content management systems", "static site generators"],
+      "fingerprint": { "queries": 39, "sha256": "ff5ca9bdfec1a732f411b3a355e2b01202baecf92e7295b8baed423219c73dc8" }
+    },
+    {
+      "name": "awesome-javascript",
+      "url": "https://raw.githubusercontent.com/sorrycc/awesome-javascript/b5518f793a597f2b3d3a7af2804c06574154f517/README.md",
+      "license": "none stated; read at run time, not copied into this repository",
+      "runtime": "browser",
+      "level": "##",
+      "start": "## Package Managers",
+      "stop": null,
+      "exclude": ["package managers", "component management", "articles and posts", "boilerplates", "tips", "misc", "frameworks", "mvc frameworks and libraries", "node-powered cms frameworks", "game engines", "editors", "qa tools"],
+      "fingerprint": { "queries": 55, "sha256": "7b48cbf38f3bf9d7da7bb0ac3b01e9c5c191df912cdcdb65d1c325ce17e5ba37" }
+    }
+  ]
+}
